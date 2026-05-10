@@ -1,0 +1,3 @@
+-- BruinNest MVP schema placeholder.
+-- Follow-up commits should add the users, email_verifications, profiles,
+-- conversations, conversation_participants, and messages tables here.

@@ -1,0 +1,2 @@
+-- BruinNest MVP seed placeholder.
+-- Add local development seed data here after the schema is finalized.

@@ -1,0 +1,48 @@
+const express = require("express");
+const session = require("express-session");
+const cors = require("cors");
+const env = require("./config/env");
+
+const app = express();
+
+app.use(
+  cors({
+    origin: env.clientOrigin,
+    credentials: true,
+  })
+);
+
+app.use(express.json());
+app.use(
+  session({
+    secret: env.sessionSecret,
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      httpOnly: true,
+      sameSite: "lax",
+    },
+  })
+);
+
+app.get("/api/health", (_req, res) => {
+  res.json({
+    success: true,
+    data: {
+      status: "ok",
+      server: "running",
+    },
+  });
+});
+
+app.use((_req, res) => {
+  res.status(404).json({
+    success: false,
+    error: {
+      code: "NOT_FOUND",
+      message: "Route not found.",
+    },
+  });
+});
+
+module.exports = app;
