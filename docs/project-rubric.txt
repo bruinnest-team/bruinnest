@@ -1,13 +1,15 @@
 The minimum requirements for the project system are:
 
 You app can display dynamic data to the user.
-Your app can upload data from the client to the back-end
-Address security issues. For example, at least part of your application should require the user to authenticate
+Your app can upload data from the client to the back-end.
+Address security issues. For example, at least part of your application should require the user to authenticate.
 User can meaningfully search through server data.
 Three more distinct features. Some points will be given according to how creative and useful the features are.
 Meaningful understanding of Git is exemplified through version control.
 A detailed README file that accurately and completely describes how to run the app locally.
 The Project is generally visually pleasing and easy to navigate.
-The code of your system is written with readability in mind (e.g., identifier have meaningful names, the code is well-structured and follows best practices, ...)
+The code of your system is written with readability in mind (e.g., identifier have meaningful names, the code is well-structured and follows best practices, ...).
 Execute a significant amount of code, written by your team, on both client and server.
+The project has 2+ fully automated end-to-end tests (for the End-to-end Test, we recommend PlayWright).
+Include at least two different diagrams of your architecture (your choice which diagram types you pick, but it should be at least two and should capture the most important aspects of your system and are consistent with the code base and consistent with each other) presented and described in the Project README file.
 You rationally consider alternative choices for your design decisions and you justify why the choices are made accordingly.
