@@ -53,6 +53,7 @@ Backend:
 cd server
 npm install
 cp .env.example .env
+npm run db:seed
 npm run dev
 ```
 
@@ -61,6 +62,8 @@ Backend notes:
 - Copy `.env.example` to `.env` before starting the server for the first time.
 - `DATABASE_PATH` is resolved relative to the `server/` directory when you run backend commands there.
 - The backend automatically initializes the SQLite database from `database/schema.sql` on startup.
+- Run `npm run db:seed` to load local test users, profiles, and messaging data for backend integration.
+- Seeded users share the demo password `Password123!` for local auth and API testing.
 - Update `SESSION_SECRET` in `.env` before shared testing or deployment. Do not keep the default `change-me` value.
 
 Business logic and the final MVP schema can be added in follow-up commits by module.
