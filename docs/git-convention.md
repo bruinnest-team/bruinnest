@@ -58,7 +58,6 @@ Each teammate should configure Git locally so commits are traceable.
 ```bash
 git config --global user.name "Your Name"
 git config --global user.email "your-github-email@example.com"
-git config --global pull.rebase true
 ```
 
 ## 5. Daily Development Workflow
@@ -121,33 +120,42 @@ Every pull request must:
 
 At least one teammate should review the PR before merge whenever possible.
 
+If `develop` has moved forward while the PR is open, rebase the feature branch onto the latest `develop`, rerun the relevant checks, and then update the PR.
+
 ### Step 9. Clean up merged branches
 
 After the PR is merged, delete stale branches locally and remotely if they are no longer needed.
 
+Deleting a merged feature branch does not remove the commits that were already merged into `develop`.
+
 ## 6. Syncing With Team Changes
 
-If your feature branch has been open for a while, sync it with the latest `develop`.
+Feature branches in this project are personal branches, not shared branches. If your branch has been open for a while, rebase it onto the latest `develop` before final review or merge.
 
 ```bash
 git switch develop
 git pull
 git switch feature/<short-feature-name>
-git merge develop
+git rebase develop
 ```
 
-If merge conflicts happen:
+If conflicts happen during rebase:
 
 1. resolve the conflicts manually
-2. run `git status`
-3. stage the resolved files
-4. commit the merge
+2. stage the resolved files
+3. run `git rebase --continue`
+4. repeat until the rebase finishes
 
-Example:
+If you need to stop and return to the branch state before rebasing:
 
 ```bash
-git add .
-git commit -m "merge: sync latest develop into feature/profile-search"
+git rebase --abort
+```
+
+If the branch was already pushed before the rebase, update the remote branch with:
+
+```bash
+git push --force-with-lease
 ```
 
 ## 7. Commit Message Standard
@@ -174,7 +182,7 @@ Examples:
 - `style`: formatting or styling-only change
 - `test`: tests added or updated
 - `chore`: tooling, configuration, or maintenance work
-- `merge`: merge commit for branch synchronization when needed
+- `merge`: merge-related maintenance when needed
 
 ### 7.2 Commit Message Rules
 
@@ -229,6 +237,22 @@ A PR description should include:
 2. affected areas, such as `client`, `server`, or `docs`
 3. how the change was tested
 4. any follow-up work still needed
+
+Use this structure for the PR body:
+
+```md
+## Summary
+- describe the main change in one to three concise bullets
+
+## Affected Areas
+- list the main folders or modules touched by the PR
+
+## Test Plan
+- list the commands you ran or the manual checks you completed
+
+## Follow-up Work
+- list the intentionally deferred work, if any
+```
 
 ## 9. Team Rules
 
