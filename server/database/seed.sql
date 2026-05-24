@@ -119,7 +119,12 @@ INSERT INTO conversations (
   (
     2001,
     '2026-05-16T18:10:00.000Z',
-    '2026-05-16T18:20:00.000Z'
+    '2026-05-16T18:30:00.000Z'
+  ),
+  (
+    2002,
+    '2026-05-16T18:32:00.000Z',
+    '2026-05-16T18:42:00.000Z'
   )
 ON CONFLICT(id) DO UPDATE SET
   created_at = excluded.created_at,
@@ -152,6 +157,48 @@ INSERT INTO messages (
     1002,
     'I am usually around campus on weekdays if you want to chat.',
     '2026-05-16T18:20:00.000Z'
+  ),
+  (
+    3004,
+    2001,
+    1002,
+    'Also, do you have a preference between Westwood and Palms?',
+    '2026-05-16T18:25:00.000Z'
+  ),
+  (
+    3005,
+    2001,
+    1002,
+    'Let me know when you have a few minutes to compare options.',
+    '2026-05-16T18:30:00.000Z'
+  ),
+  (
+    3101,
+    2002,
+    1003,
+    'Hi Alice! I saw your profile and we have similar move-in timing.',
+    '2026-05-16T18:33:00.000Z'
+  ),
+  (
+    3102,
+    2002,
+    1001,
+    'Hey Carol! Yes, I am targeting early September. What is your budget?',
+    '2026-05-16T18:35:00.000Z'
+  ),
+  (
+    3103,
+    2002,
+    1003,
+    'Around 800 to 1200. Are you open to a two-bedroom split?',
+    '2026-05-16T18:40:00.000Z'
+  ),
+  (
+    3104,
+    2002,
+    1003,
+    'I can also send you a couple of listings I have been tracking.',
+    '2026-05-16T18:42:00.000Z'
   )
 ON CONFLICT(id) DO UPDATE SET
   conversation_id = excluded.conversation_id,
@@ -179,6 +226,20 @@ INSERT INTO conversation_participants (
     1002,
     3003,
     '2026-05-16T18:10:00.000Z'
+  ),
+  (
+    4003,
+    2002,
+    1001,
+    3102,
+    '2026-05-16T18:32:00.000Z'
+  ),
+  (
+    4004,
+    2002,
+    1003,
+    3104,
+    '2026-05-16T18:32:00.000Z'
   )
 ON CONFLICT(id) DO UPDATE SET
   conversation_id = excluded.conversation_id,
