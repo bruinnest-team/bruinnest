@@ -5,6 +5,10 @@ const env = require("./config/env");
 const notFoundHandler = require("./middlewares/notFoundHandler");
 const errorHandler = require("./middlewares/errorHandler");
 const authRoutes = require("./routes/authRoutes");
+const {
+  conversationsRouter,
+  messagesRouter,
+} = require("./routes/messageRoutes");
 
 const app = express();
 
@@ -39,6 +43,8 @@ app.get("/api/health", (_req, res) => {
 });
 
 app.use("/api/auth", authRoutes);
+app.use("/api/conversations", conversationsRouter);
+app.use("/api/messages", messagesRouter);
 
 app.use(notFoundHandler);
 app.use(errorHandler);
