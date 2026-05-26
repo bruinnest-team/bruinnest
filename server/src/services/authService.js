@@ -1,5 +1,6 @@
 const userRepository = require('../repositories/userRepository');
 const emailVerificationRepository = require('../repositories/emailVerificationRepository');
+const profileRepository = require('../repositories/profileRepository');
 const { hashPassword, verifyPassword } = require('../utils/password');
 const { nowISO, addSeconds, isExpired } = require('../utils/time');
 const AuthError = require('../errors/AuthError');
@@ -108,7 +109,8 @@ async function login({ email, password, session }) {
 
   session.userId = user.id;
 
-  return { user: { id: user.id, email: user.email } };
+  const profile = profileRepository.findByUserId(user.id);
+  return { user: { id: user.id, email: user.email }, profileCompleted: profile?.profileCompleted ?? false };
 }
 
 function logout(session) {
@@ -130,7 +132,8 @@ function getCurrentUser(session) {
     throw new AuthError('User not found');
   }
 
-  return { user: { id: user.id, email: user.email } };
+  const profile = profileRepository.findByUserId(user.id);
+  return { user: { id: user.id, email: user.email }, profileCompleted: profile?.profileCompleted ?? false };
 }
 
 module.exports = {
