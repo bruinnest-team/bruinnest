@@ -9,6 +9,26 @@ function createProfile(req, res, next) {
   }
 }
 
+function getMyProfile(req, res, next) {
+  try {
+    const data = profileService.getMyProfile(req.session.userId);
+    res.status(200).json({ success: true, data });
+  } catch (error) {
+    return next(error);
+  }
+}
+
+function updateProfile(req, res, next) {
+  try {
+    const data = profileService.updateProfile(req.session.userId, req.body);
+    res.status(200).json({ success: true, data });
+  } catch (error) {
+    return next(error);
+  }
+}
+
 module.exports = {
   createProfile,
+  getMyProfile,
+  updateProfile,
 };
