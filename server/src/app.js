@@ -9,6 +9,7 @@ const {
   conversationsRouter,
   messagesRouter,
 } = require("./routes/messageRoutes");
+const profileRoutes = require("./routes/profileRoutes");
 
 const app = express();
 
@@ -32,7 +33,7 @@ app.use(
   })
 );
 
-app.get("/api/health", (_req, res) => {
+app.get("/api/health", (req, res) => {
   res.json({
     success: true,
     data: {
@@ -45,6 +46,7 @@ app.get("/api/health", (_req, res) => {
 app.use("/api/auth", authRoutes);
 app.use("/api/conversations", conversationsRouter);
 app.use("/api/messages", messagesRouter);
+app.use("/api", profileRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler);
