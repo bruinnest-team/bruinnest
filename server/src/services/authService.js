@@ -123,10 +123,6 @@ function logout(session) {
 }
 
 function getCurrentUser(session) {
-  if (!session || !session.userId) {
-    throw new AuthError('Not authenticated');
-  }
-
   const user = userRepository.findById(session.userId);
   if (!user) {
     throw new AuthError('User not found');
