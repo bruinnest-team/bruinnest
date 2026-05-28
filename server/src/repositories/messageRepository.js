@@ -113,6 +113,10 @@ function createMessage({
   return mapMessageRow(findMessageByIdStatement.get(result.lastInsertRowid));
 }
 
+function findMessageById(messageId) {
+  return mapMessageRow(findMessageByIdStatement.get(messageId));
+}
+
 function listMessages(conversationId) {
   return listMessagesStatement.all(conversationId).map(mapMessageRow);
 }
@@ -141,6 +145,7 @@ function countAllUnreadMessagesForUser(userId) {
 
 module.exports = {
   createMessage,
+  findMessageById,
   listMessages,
   listMessagesAfter,
   findLatestMessage,

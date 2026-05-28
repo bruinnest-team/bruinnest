@@ -320,7 +320,7 @@ Recommended exports:
 
 - `createOrGetConversation(currentUserId, targetUserId)`
 - `listConversations(currentUserId)`
-- `listMessages(currentUserId, conversationId, afterMessageId)`
+- `getMessages(currentUserId, conversationId, afterMessageId)`
 - `sendMessage(currentUserId, conversationId, body)`
 - `markConversationRead(currentUserId, conversationId, lastReadMessageId)`
 - `getUnreadSummary(currentUserId)`
@@ -377,6 +377,7 @@ Recommended exports:
 Recommended exports:
 
 - `createMessage({ conversationId, senderUserId, body, createdAt })`
+- `findMessageById(messageId)`
 - `listMessages(conversationId)`
 - `listMessagesAfter(conversationId, afterMessageId)`
 - `findLatestMessage(conversationId)`
