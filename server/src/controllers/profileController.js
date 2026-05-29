@@ -36,9 +36,22 @@ function listProfiles(req, res, next) {
   }
 }
 
+function getProfileDetail(req, res, next) {
+  try {
+    const data = profileService.getProfileDetail(
+      req.session.userId,
+      req.params.userId
+    );
+    res.status(200).json({ success: true, data });
+  } catch (error) {
+    return next(error);
+  }
+}
+
 module.exports = {
   createProfile,
   getMyProfile,
   updateProfile,
   listProfiles,
+  getProfileDetail,
 };
