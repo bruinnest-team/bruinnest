@@ -27,8 +27,18 @@ function updateProfile(req, res, next) {
   }
 }
 
+function listProfiles(req, res, next) {
+  try {
+    const data = profileService.listProfiles(req.session.userId, req.query);
+    res.status(200).json({ success: true, data });
+  } catch (error) {
+    return next(error);
+  }
+}
+
 module.exports = {
   createProfile,
   getMyProfile,
   updateProfile,
+  listProfiles,
 };
