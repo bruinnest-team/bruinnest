@@ -69,70 +69,47 @@ function ProfileSetupPage() {
     }
   }
 
-  const inputStyle = {
-    padding: "0.6rem 0.8rem",
-    borderRadius: "6px",
-    border: "1px solid #d1d5db",
-    fontSize: "1rem",
-  };
-
-  const fieldStyle = {
-    display: "flex",
-    flexDirection: "column",
-    gap: "0.4rem",
-  };
-
-  const labelStyle = { fontWeight: "500" };
-
   return (
     <main className="page-shell">
       <section className="page-card">
-        <p style={{ color: "#1e3a5f", fontWeight: "600", fontSize: "0.8rem", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: "0.5rem" }}>
-          Profile
-        </p>
-        <h1 style={{ marginBottom: "1.5rem" }}>
-          {isEditing ? "Edit Profile" : "Profile Setup"}
-        </h1>
-        <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "1.2rem" }}>
-          <div style={fieldStyle}>
-            <label style={labelStyle}>Display Name</label>
-            <input name="displayName" value={form.displayName} onChange={handleChange} required style={inputStyle} />
+        <p className="page-eyebrow">Profile</p>
+        <h1>{isEditing ? "Edit Profile" : "Profile Setup"}</h1>
+        <form onSubmit={handleSubmit}>
+          <div className="form-field">
+            <label>Display Name</label>
+            <input className="form-input" name="displayName" value={form.displayName} onChange={handleChange} required />
           </div>
-          <div style={fieldStyle}>
-            <label style={labelStyle}>Gender</label>
-            <select name="gender" value={form.gender} onChange={handleChange} required style={inputStyle}>
+          <div className="form-field">
+            <label>Gender</label>
+            <select className="form-input" name="gender" value={form.gender} onChange={handleChange} required>
               <option value="">Select...</option>
               <option value="male">Male</option>
               <option value="female">Female</option>
               <option value="other">Other</option>
             </select>
           </div>
-          <div style={fieldStyle}>
-            <label style={labelStyle}>Graduation Year</label>
-            <input name="graduationYear" type="number" value={form.graduationYear} onChange={handleChange} required style={inputStyle} />
+          <div className="form-field">
+            <label>Graduation Year</label>
+            <input className="form-input" name="graduationYear" type="number" value={form.graduationYear} onChange={handleChange} required />
           </div>
-          <div style={fieldStyle}>
-            <label style={labelStyle}>Budget Min</label>
-            <input name="budgetMin" type="number" value={form.budgetMin} onChange={handleChange} required style={inputStyle} />
+          <div className="form-field">
+            <label>Budget Min</label>
+            <input className="form-input" name="budgetMin" type="number" value={form.budgetMin} onChange={handleChange} required />
           </div>
-          <div style={fieldStyle}>
-            <label style={labelStyle}>Budget Max</label>
-            <input name="budgetMax" type="number" value={form.budgetMax} onChange={handleChange} required style={inputStyle} />
+          <div className="form-field">
+            <label>Budget Max</label>
+            <input className="form-input" name="budgetMax" type="number" value={form.budgetMax} onChange={handleChange} required />
           </div>
-          <div style={fieldStyle}>
-            <label style={labelStyle}>Move-in Date</label>
-            <input name="moveInDate" type="date" value={form.moveInDate} onChange={handleChange} required style={inputStyle} />
+          <div className="form-field">
+            <label>Move-in Date</label>
+            <input className="form-input" name="moveInDate" type="date" value={form.moveInDate} onChange={handleChange} required />
           </div>
-          <div style={fieldStyle}>
-            <label style={labelStyle}>Bio</label>
-            <textarea name="bio" value={form.bio} onChange={handleChange} rows={4} style={{ ...inputStyle, resize: "vertical" }} />
+          <div className="form-field">
+            <label>Bio</label>
+            <textarea className="form-input" name="bio" value={form.bio} onChange={handleChange} rows={4} style={{ resize: "vertical" }} />
           </div>
-          {error && <p style={{ color: "#e53e3e", margin: 0 }}>{error}</p>}
-          <button
-            type="submit"
-            disabled={loading}
-            style={{ marginTop: "0.5rem", padding: "0.7rem", borderRadius: "6px", border: "none", background: "#1e3a5f", color: "white", fontSize: "1rem", cursor: "pointer" }}
-          >
+          {error && <p className="form-error">{error}</p>}
+          <button className="btn-primary" type="submit" disabled={loading}>
             {loading ? "Saving..." : isEditing ? "Update Profile" : "Create Profile"}
           </button>
         </form>
