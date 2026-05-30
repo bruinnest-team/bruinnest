@@ -28,7 +28,7 @@ function LoginPage() {
         setError(res.error.message);
       }
     } catch (err) {
-      setError("Something went wrong. Please try again.");
+      setError(err.message);
     } finally {
       setLoading(false);
     }
