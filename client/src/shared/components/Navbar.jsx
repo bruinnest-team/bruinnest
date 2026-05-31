@@ -1,9 +1,27 @@
+import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { getUnreadSummary } from "../../lib/api/messages";
 
 function Navbar() {
   const { logout } = useAuth();
   const navigate = useNavigate();
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    loadUnread();
+    const timer = setInterval(loadUnread, 5000);
+    return () => clearInterval(timer);
+  }, []);
+
+  async function loadUnread() {
+    try {
+      const res = await getUnreadSummary();
+      setUnreadCount(res.data.unreadCount);
+    } catch (err) {
+      setUnreadCount(0);
+    }
+  }
 
   async function handleLogout() {
     await logout();
@@ -28,20 +46,35 @@ function Navbar() {
       <Link to="/browse" style={{ fontWeight: "700", fontSize: "1.1rem", color: "#1e3a5f", textDecoration: "none" }}>
         BruinNest
       </Link>
-      <button
-        onClick={handleLogout}
-        style={{
-          background: "none",
-          border: "1px solid #1e3a5f",
-          color: "#1e3a5f",
-          padding: "0.4rem 1rem",
-          borderRadius: "6px",
-          cursor: "pointer",
-          fontSize: "0.9rem",
-        }}
-      >
-        Logout
-      </button>
+
+      <div style={{ display: "flex", alignItems: "center", gap: "1.5rem" }}>
+        <Link
+          to="/messages"
+          style={{ color: "#1e3a5f", textDecoration: "none", fontSize: "0.95rem", display: "flex", alignItems: "center", gap: "0.4rem" }}
+        >
+          Messages
+          {unreadCount > 0 && (
+            <span style={{ background: "#ef4444", color: "white", borderRadius: "999px", padding: "0 0.5rem", fontSize: "0.75rem" }}>
+              {unreadCount}
+            </span>
+          )}
+        </Link>
+
+        <button
+          onClick={handleLogout}
+          style={{
+            background: "none",
+            border: "1px solid #1e3a5f",
+            color: "#1e3a5f",
+            padding: "0.4rem 1rem",
+            borderRadius: "6px",
+            cursor: "pointer",
+            fontSize: "0.9rem",
+          }}
+        >
+          Logout
+        </button>
+      </div>
     </nav>
   );
 }
