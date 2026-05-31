@@ -25,7 +25,7 @@ function ProfileDetailPage() {
       const res = await getProfileById(userId);
       setProfile(res.data);
     } catch (err) {
-      setError("Could not load this profile. It may not exist.");
+      setError(err.message || "Could not load this profile. It may not exist.");
     }
     setLoading(false);
   }
@@ -38,7 +38,7 @@ function ProfileDetailPage() {
       // Navigate to the messages page; pass the conversation id so it can open directly.
       navigate("/messages", { state: { conversationId: res.data.conversationId } });
     } catch (err) {
-      setError("Could not start a conversation. Please try again.");
+      setError(err.message || "Could not start a conversation. Please try again.");
       setMessaging(false);
     }
   }

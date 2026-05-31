@@ -44,7 +44,7 @@ function BrowsePage() {
       setProfiles(res.data.items);
       setTotal(res.data.total);
     } catch (err) {
-      setError("Could not load profiles. Please try again.");
+      setError(err.message || "Could not load profiles. Please try again.");
     }
     setLoading(false);
   }

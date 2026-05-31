@@ -47,7 +47,7 @@ function MessagesPage() {
       const res = await getConversations();
       setConversations(res.data.items);
     } catch (err) {
-      setError("Could not load conversations.");
+      setError(err.message || "Could not load conversations.");
     }
   }
 
@@ -61,7 +61,7 @@ function MessagesPage() {
         loadConversations();
       }
     } catch (err) {
-      setError("Could not load messages.");
+      setError(err.message || "Could not load messages.");
     }
   }
 
@@ -82,7 +82,7 @@ function MessagesPage() {
       setDraft("");
       loadMessages(activeId);
     } catch (err) {
-      setError("Could not send message.");
+      setError(err.message || "Could not send message.");
     }
   }
 
