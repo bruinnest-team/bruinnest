@@ -101,3 +101,17 @@ p {
   color: #dc2626;
   font-size: 0.875rem;
 }
+
+.btn-secondary {
+  padding: 0.5rem 1rem;
+  background: white;
+  color: #1e3a5f;
+  border: 1px solid #1e3a5f;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+
+.btn-secondary:hover {
+  background: #f1f5f9;
+}

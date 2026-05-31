@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { register, verify } from "../lib/api/auth";
+import { registerUser, verifyRegistration } from "../lib/api/auth";
 import { useAuth } from "../shared/context/AuthContext";
 
 function RegisterPage() {
@@ -10,7 +10,7 @@ function RegisterPage() {
   const [code, setCode] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const { refreshUser } = useAuth();
+  const { refreshAuth } = useAuth();
   const navigate = useNavigate();
 
   async function handleRegister(e) {
@@ -18,7 +18,7 @@ function RegisterPage() {
     setError("");
     setLoading(true);
     try {
-      const res = await register(email, password);
+      const res = await registerUser(email, password);
       if (res.success) {
         setStep(2);
       } else {
@@ -36,9 +36,9 @@ function RegisterPage() {
     setError("");
     setLoading(true);
     try {
-      const res = await verify(email, password, code);
+      const res = await verifyRegistration(email, password, code);
       if (res.success) {
-        refreshUser(res.data.user, false);
+        refreshAuth(res.data.user, false);
         navigate("/profile/setup");
       } else {
         setError(res.error.message);

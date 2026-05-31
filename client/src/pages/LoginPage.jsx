@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { login } from "../lib/api/auth";
+import { loginUser } from "../lib/api/auth";
 import { useAuth } from "../shared/context/AuthContext";
 
 function LoginPage() {
@@ -8,7 +8,7 @@ function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const { refreshUser } = useAuth();
+  const { refreshAuth } = useAuth();
   const navigate = useNavigate();
 
   async function handleSubmit(e) {
@@ -16,9 +16,9 @@ function LoginPage() {
     setError("");
     setLoading(true);
     try {
-      const res = await login(email, password);
+      const res = await loginUser(email, password);
       if (res.success) {
-        refreshUser(res.data.user, res.data.profileCompleted);
+        refreshAuth(res.data.user, res.data.profileCompleted);
         if (res.data.profileCompleted) {
           navigate("/browse");
         } else {
