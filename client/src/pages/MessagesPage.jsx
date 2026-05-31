@@ -2,9 +2,9 @@ import { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import {
   getConversations,
-  getMessages,
+  getConversationMessages,
   sendMessage,
-  markRead,
+  markConversationRead,
   getUnreadSummary,
 } from "../lib/api/messages";
 import Navbar from "../shared/components/Navbar";
@@ -32,9 +32,12 @@ function MessagesPage() {
 
   useEffect(() => {
     if (!activeId) return;
-    const timer = setInterval(() => loadMessages(activeId), POLL_INTERVAL);
+    const timer = setInterval(() => {
+      const lastId = messages.length > 0 ? messages[messages.length - 1].id : undefined;
+      loadMessages(activeId, lastId);
+    }, POLL_INTERVAL);
     return () => clearInterval(timer);
-  }, [activeId]);
+  }, [activeId, messages]);
 
   useEffect(() => {
     loadUnread();
@@ -51,14 +54,17 @@ function MessagesPage() {
     }
   }
 
-  async function loadMessages(conversationId) {
+  async function loadMessages(conversationId, afterMessageId) {
     try {
-      const res = await getMessages(conversationId);
-      const items = res.data.items;
-      setMessages(items);
-      if (items.length > 0) {
-        await markRead(conversationId, items[items.length - 1].id);
+      const res = await getConversationMessages(conversationId, afterMessageId);
+      const newItems = res.data.items;
+      if (newItems.length === 0) return;
+      setMessages((prev) => (afterMessageId ? [...prev, ...newItems] : newItems));
+      try {
+        await markConversationRead(conversationId, newItems[newItems.length - 1].id);
         loadConversations();
+      } catch (markErr) {
+        console.error(markErr);
       }
     } catch (err) {
       setError(err.message || "Could not load messages.");
@@ -70,7 +76,7 @@ function MessagesPage() {
       const res = await getUnreadSummary();
       setUnreadTotal(res.data.unreadCount);
     } catch (err) {
-      setError("");
+      console.error(err);
     }
   }
 
