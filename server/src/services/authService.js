@@ -3,20 +3,11 @@ const emailVerificationRepository = require('../repositories/emailVerificationRe
 const profileRepository = require('../repositories/profileRepository');
 const { hashPassword, verifyPassword } = require('../utils/password');
 const { nowISO, addSeconds, isExpired } = require('../utils/time');
+const { validatePassword } = require('../validations/authValidation');
 const AuthError = require('../errors/AuthError');
 const ValidationError = require('../errors/ValidationError');
 const ConflictError = require('../errors/ConflictError');
-const crypto = require('crypto');
 const bcrypt = require('bcrypt');
-
-function validatePassword(password) {
-  if (!password || password.length < 8) {
-    throw new ValidationError('Password must be at least 8 characters');
-  }
-  if (!/\d/.test(password)) {
-    throw new ValidationError('Password must contain at least one digit');
-  }
-}
 
 async function sendVerificationCode({ email, password }) {
   if (!email || !password) {
