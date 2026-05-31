@@ -164,6 +164,7 @@ server/
 │   │   ├── errorHandler.js
 │   │   └── notFoundHandler.js
 │   ├── validations/
+│   │   ├── commonValidation.js
 │   │   ├── authValidation.js
 │   │   ├── profileValidation.js
 │   │   └── messageValidation.js
@@ -192,6 +193,9 @@ Files:
 - `services/authService.js`
 - `repositories/userRepository.js`
 - `repositories/emailVerificationRepository.js`
+- `repositories/profileRepository.js`
+- `validations/authValidation.js`
+- `validations/commonValidation.js`
 
 Responsibilities:
 
@@ -209,6 +213,7 @@ Business rules owned by this module:
 - verification code resend interval is 60 seconds
 - only valid verification codes can complete registration
 - only verified accounts may log in
+- login and session restore return `profileCompleted` from the profiles table so the frontend can route correctly
 
 ## 6.2 Profile Module
 
@@ -218,6 +223,9 @@ Files:
 - `controllers/profileController.js`
 - `services/profileService.js`
 - `repositories/profileRepository.js`
+- `repositories/userRepository.js`
+- `validations/profileValidation.js`
+- `validations/commonValidation.js`
 
 Responsibilities:
 
@@ -243,6 +251,9 @@ Files:
 - `services/messageService.js`
 - `repositories/conversationRepository.js`
 - `repositories/messageRepository.js`
+- `repositories/userRepository.js`
+- `validations/messageValidation.js`
+- `validations/commonValidation.js`
 
 Responsibilities:
 

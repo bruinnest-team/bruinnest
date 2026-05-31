@@ -1,9 +1,10 @@
 const profileService = require("../services/profileService");
+const { success } = require("../utils/apiResponse");
 
 function createProfile(req, res, next) {
   try {
     const data = profileService.createProfile(req.session.userId, req.body);
-    res.status(201).json({ success: true, data });
+    return success(res, data, 201);
   } catch (error) {
     return next(error);
   }
@@ -12,7 +13,7 @@ function createProfile(req, res, next) {
 function getMyProfile(req, res, next) {
   try {
     const data = profileService.getMyProfile(req.session.userId);
-    res.status(200).json({ success: true, data });
+    return success(res, data);
   } catch (error) {
     return next(error);
   }
@@ -21,7 +22,7 @@ function getMyProfile(req, res, next) {
 function updateProfile(req, res, next) {
   try {
     const data = profileService.updateProfile(req.session.userId, req.body);
-    res.status(200).json({ success: true, data });
+    return success(res, data);
   } catch (error) {
     return next(error);
   }
@@ -30,7 +31,7 @@ function updateProfile(req, res, next) {
 function listProfiles(req, res, next) {
   try {
     const data = profileService.listProfiles(req.session.userId, req.query);
-    res.status(200).json({ success: true, data });
+    return success(res, data);
   } catch (error) {
     return next(error);
   }
@@ -42,7 +43,7 @@ function getProfileDetail(req, res, next) {
       req.session.userId,
       req.params.userId
     );
-    res.status(200).json({ success: true, data });
+    return success(res, data);
   } catch (error) {
     return next(error);
   }

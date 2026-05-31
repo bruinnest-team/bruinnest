@@ -1,34 +1,10 @@
 const ValidationError = require("../errors/ValidationError");
+const {
+  requirePositiveInteger,
+  optionalNonNegativeInteger,
+} = require("./commonValidation");
 
 const MAX_BODY_LENGTH = 5000;
-
-function requirePositiveInteger(value, fieldName) {
-  const numberValue = Number(value);
-
-  if (
-    typeof value === "boolean" ||
-    !Number.isInteger(numberValue) ||
-    numberValue <= 0
-  ) {
-    throw new ValidationError(`${fieldName} must be a positive integer.`);
-  }
-
-  return numberValue;
-}
-
-function optionalNonNegativeInteger(value, fieldName) {
-  if (value === undefined || value === null || value === "") {
-    return null;
-  }
-
-  const numberValue = Number(value);
-
-  if (!Number.isInteger(numberValue) || numberValue < 0) {
-    throw new ValidationError(`${fieldName} must be a non-negative integer.`);
-  }
-
-  return numberValue;
-}
 
 function requireMessageBody(value) {
   if (typeof value !== "string") {
