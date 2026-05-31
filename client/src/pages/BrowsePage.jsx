@@ -3,31 +3,46 @@ import { useNavigate } from "react-router-dom";
 import { getProfiles } from "../lib/api/profile";
 import Navbar from "../shared/components/Navbar";
 
+const PAGE_SIZE = 10;
+
 function BrowsePage() {
   const [profiles, setProfiles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [keyword, setKeyword] = useState("");
   const [gender, setGender] = useState("");
+  const [graduationYear, setGraduationYear] = useState("");
+  const [budgetMin, setBudgetMin] = useState("");
+  const [budgetMax, setBudgetMax] = useState("");
+  const [moveInDate, setMoveInDate] = useState("");
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
   const navigate = useNavigate();
 
+  // Reload whenever the page changes (search resets to page 1 below).
   useEffect(() => {
     loadProfiles();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page]);
 
   async function loadProfiles() {
     setLoading(true);
     setError("");
     try {
-      let query = "";
-      if (keyword || gender) {
-        const parts = [];
-        if (keyword) parts.push("keyword=" + keyword);
-        if (gender) parts.push("gender=" + gender);
-        query = "?" + parts.join("&");
-      }
+      const parts = [];
+      if (keyword) parts.push("keyword=" + encodeURIComponent(keyword));
+      if (gender) parts.push("gender=" + encodeURIComponent(gender));
+      if (graduationYear) parts.push("graduationYear=" + encodeURIComponent(graduationYear));
+      if (budgetMin) parts.push("budgetMin=" + encodeURIComponent(budgetMin));
+      if (budgetMax) parts.push("budgetMax=" + encodeURIComponent(budgetMax));
+      if (moveInDate) parts.push("moveInDate=" + encodeURIComponent(moveInDate));
+      parts.push("page=" + page);
+      parts.push("pageSize=" + PAGE_SIZE);
+      const query = "?" + parts.join("&");
+
       const res = await getProfiles(query);
       setProfiles(res.data.items);
+      setTotal(res.data.total);
     } catch (err) {
       setError("Could not load profiles. Please try again.");
     }
@@ -36,8 +51,16 @@ function BrowsePage() {
 
   function handleSearch(e) {
     e.preventDefault();
-    loadProfiles();
+    // A new search should always start from page 1.
+    // If already on page 1, reset state won't retrigger the effect, so load directly.
+    if (page === 1) {
+      loadProfiles();
+    } else {
+      setPage(1);
+    }
   }
+
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   return (
     <>
@@ -58,6 +81,7 @@ function BrowsePage() {
                 placeholder="Name or bio..."
               />
             </div>
+
             <div className="form-field">
               <label>Gender</label>
               <select className="form-input" value={gender} onChange={(e) => setGender(e.target.value)}>
@@ -67,6 +91,50 @@ function BrowsePage() {
                 <option value="other">Other</option>
               </select>
             </div>
+
+            <div className="form-field">
+              <label>Graduation Year</label>
+              <input
+                className="form-input"
+                type="number"
+                value={graduationYear}
+                onChange={(e) => setGraduationYear(e.target.value)}
+                placeholder="e.g. 2027"
+              />
+            </div>
+
+            <div className="form-field">
+              <label>Budget Min ($/mo)</label>
+              <input
+                className="form-input"
+                type="number"
+                value={budgetMin}
+                onChange={(e) => setBudgetMin(e.target.value)}
+                placeholder="e.g. 800"
+              />
+            </div>
+
+            <div className="form-field">
+              <label>Budget Max ($/mo)</label>
+              <input
+                className="form-input"
+                type="number"
+                value={budgetMax}
+                onChange={(e) => setBudgetMax(e.target.value)}
+                placeholder="e.g. 1500"
+              />
+            </div>
+
+            <div className="form-field">
+              <label>Move-in Date</label>
+              <input
+                className="form-input"
+                type="date"
+                value={moveInDate}
+                onChange={(e) => setMoveInDate(e.target.value)}
+              />
+            </div>
+
             <button className="btn-primary" type="submit">Search</button>
           </form>
 
@@ -86,6 +154,30 @@ function BrowsePage() {
               <p style={{ margin: 0 }}>{profile.bioPreview}</p>
             </div>
           ))}
+
+          {!loading && !error && total > 0 && (
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: "1.5rem" }}>
+              <button
+                className="btn-primary"
+                type="button"
+                disabled={page <= 1}
+                onClick={() => setPage((p) => p - 1)}
+              >
+                Previous
+              </button>
+              <span style={{ color: "#666" }}>
+                Page {page} of {totalPages} · {total} total
+              </span>
+              <button
+                className="btn-primary"
+                type="button"
+                disabled={page >= totalPages}
+                onClick={() => setPage((p) => p + 1)}
+              >
+                Next
+              </button>
+            </div>
+          )}
         </section>
       </main>
     </>
