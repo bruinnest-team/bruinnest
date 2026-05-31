@@ -10,3 +10,29 @@ export function createConversation(targetUserId) {
     body: JSON.stringify({ targetUserId }),
   });
 }
+
+export function getConversations() {
+  return apiRequest("/conversations");
+}
+
+export function getMessages(conversationId, afterMessageId) {
+  let path = `/conversations/${conversationId}/messages`;
+  if (afterMessageId) {
+    path += `?afterMessageId=${afterMessageId}`;
+  }
+  return apiRequest(path);
+}
+
+export function sendMessage(conversationId, body) {
+  return apiRequest("/messages", {
+    method: "POST",
+    body: JSON.stringify({ conversationId, body }),
+  });
+}
+
+export function markRead(conversationId, lastReadMessageId) {
+  return apiRequest(`/conversations/${conversationId}/read`, {
+    method: "POST",
+    body: JSON.stringify({ lastReadMessageId }),
+  });
+}
