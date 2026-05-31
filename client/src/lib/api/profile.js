@@ -11,7 +11,7 @@ export function createProfile(data) {
   });
 }
 
-export function updateProfile(data) {
+export function updateMyProfile(data) {
   return apiRequest("/profile/me", {
     method: "PUT",
     body: JSON.stringify(data),

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { getProfileById } from "../lib/api/profile";
-import { createConversation } from "../lib/api/messages";
+import { createOrGetConversation } from "../lib/api/messages";
 import Navbar from "../shared/components/Navbar";
 
 function ProfileDetailPage() {
@@ -34,7 +34,7 @@ function ProfileDetailPage() {
     setMessaging(true);
     setError("");
     try {
-      const res = await createConversation(Number(userId));
+      const res = await createOrGetConversation(Number(userId));
       // Navigate to the messages page; pass the conversation id so it can open directly.
       navigate("/messages", { state: { conversationId: res.data.conversationId } });
     } catch (err) {

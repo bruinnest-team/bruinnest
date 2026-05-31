@@ -4,7 +4,7 @@ export function getUnreadSummary() {
   return apiRequest("/messages/unread-summary");
 }
 
-export function createConversation(targetUserId) {
+export function createOrGetConversation(targetUserId) {
   return apiRequest("/conversations", {
     method: "POST",
     body: JSON.stringify({ targetUserId }),
@@ -15,7 +15,7 @@ export function getConversations() {
   return apiRequest("/conversations");
 }
 
-export function getMessages(conversationId, afterMessageId) {
+export function getConversationMessages(conversationId, afterMessageId) {
   let path = `/conversations/${conversationId}/messages`;
   if (afterMessageId) {
     path += `?afterMessageId=${afterMessageId}`;
@@ -30,7 +30,7 @@ export function sendMessage(conversationId, body) {
   });
 }
 
-export function markRead(conversationId, lastReadMessageId) {
+export function markConversationRead(conversationId, lastReadMessageId) {
   return apiRequest(`/conversations/${conversationId}/read`, {
     method: "POST",
     body: JSON.stringify({ lastReadMessageId }),

@@ -4,7 +4,7 @@ import { useAuth } from "../context/AuthContext";
 import { getUnreadSummary } from "../../lib/api/messages";
 
 function Navbar() {
-  const { logout } = useAuth();
+  const { clearAuth } = useAuth();
   const navigate = useNavigate();
   const [unreadCount, setUnreadCount] = useState(0);
 
@@ -24,7 +24,7 @@ function Navbar() {
   }
 
   async function handleLogout() {
-    await logout();
+    await clearAuth();
     navigate("/login");
   }
 

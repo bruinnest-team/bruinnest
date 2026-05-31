@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect } from "react";
-import { getCurrentUser, logout as logoutApi } from "../../lib/api/auth";
+import { getCurrentUser, logoutUser as logoutApi } from "../../lib/api/auth";
 
 const AuthContext = createContext(null);
 
@@ -22,13 +22,13 @@ export function AuthProvider({ children }) {
       .finally(() => setLoading(false));
   }, []);
 
-  function refreshUser(user, profileCompleted) {
+  function refreshAuth(user, profileCompleted) {
     setCurrentUser(user);
     setIsAuthenticated(true);
     setProfileCompleted(profileCompleted);
   }
 
-  async function logout() {
+  async function clearAuth() {
     await logoutApi();
     setCurrentUser(null);
     setIsAuthenticated(false);
@@ -40,8 +40,8 @@ export function AuthProvider({ children }) {
     isAuthenticated,
     profileCompleted,
     loading,
-    refreshUser,
-    logout,
+    refreshAuth,
+    clearAuth,
   };
 
   return (

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { getMyProfile, createProfile, updateProfile } from "../lib/api/profile";
+import { getMyProfile, createProfile, updateMyProfile } from "../lib/api/profile";
 import { useAuth } from "../shared/context/AuthContext";
 
 function ProfileSetupPage() {
@@ -16,7 +16,7 @@ function ProfileSetupPage() {
   const [isEditing, setIsEditing] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const { refreshUser, currentUser } = useAuth();
+  const { refreshAuth, currentUser } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -54,10 +54,10 @@ function ProfileSetupPage() {
         budgetMax: Number(form.budgetMax),
       };
       const res = isEditing
-        ? await updateProfile(data)
+        ? await updateMyProfile(data)
         : await createProfile(data);
       if (res.success) {
-        refreshUser(currentUser, true);
+        refreshAuth(currentUser, true);
         navigate("/browse");
       } else {
         setError(res.error.message);
