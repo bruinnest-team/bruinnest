@@ -724,7 +724,7 @@ Success response:
   "success": true,
   "data": {
     "userId": 2,
-    "scorePercent": 86,
+    "compatibilityScore": 86,
     "calculatedAt": "2026-05-31T20:00:00.000Z"
   }
 }
@@ -746,6 +746,7 @@ Behavior:
 
 - require authentication
 - sort notifications by newest first
+- always return the current user's total unread notification count in `unreadCount`
 
 Success response:
 
@@ -753,6 +754,7 @@ Success response:
 {
   "success": true,
   "data": {
+    "unreadCount": 4,
     "items": [
       {
         "id": 15,

@@ -58,7 +58,7 @@ This repository now includes:
 - a Vite + React frontend in `client/`
 - an Express + SQLite backend in `server/`
 - seeded MVP data for local development
-- a local housing dataset in `server/database/import-data/`
+- a local housing dataset in `server/database/data/`
 - detailed database, API, backend, and frontend documentation in `docs/`
 
 ## Getting Started

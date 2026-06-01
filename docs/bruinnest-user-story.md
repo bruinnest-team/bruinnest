@@ -110,7 +110,7 @@ The BruinNest requirements are organized into three practical delivery phases:
 
 #### Acceptance Criteria
 
-1. Given an authenticated user viewing another user's profile, when they click "Send Message" and type a message, then the message is delivered to the recipient in real time via WebSocket.
+1. Given an authenticated user viewing another user's profile, when they click "Send Message" and type a message, then the message is saved and appears in the recipient's conversation when they navigate to or poll the Messages page.
 
 2. Given two users with an existing conversation, when either user reopens the conversation, then the full message history is loaded and displayed in chronological order.
 
