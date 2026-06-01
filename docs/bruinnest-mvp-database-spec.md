@@ -248,7 +248,8 @@ When the team creates the SQL schema, the following should be reflected clearly:
 - explicit uniqueness for account email
 - explicit uniqueness for `profiles.user_id`
 - explicit uniqueness for `conversation_participants (conversation_id, user_id)`
-- consistent timestamp format across all tables
+- all timestamp fields should be stored as ISO 8601 UTC text strings
+- example format: `2026-05-14T17:00:00.000Z`
 - indexes added where search or lookup frequency justifies them
 
 ## 11. Summary
