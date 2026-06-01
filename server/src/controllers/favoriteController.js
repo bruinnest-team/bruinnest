@@ -1,34 +1,30 @@
 const favoriteService = require("../services/favoriteService");
+const { success } = require("../utils/apiResponse");
 
 function addFavorite(req, res, next) {
   try {
-    const currentUserId = req.user.id;
-    const { targetUserId } = req.body;
-    const result = favoriteService.addFavorite(currentUserId, targetUserId);
-    res.status(201).json(result);
-  } catch (err) {
-    next(err);
+    const data = favoriteService.addFavorite(req.session.userId, req.body.targetUserId);
+    return success(res, data, 201);
+  } catch (error) {
+    return next(error);
   }
 }
 
 function removeFavorite(req, res, next) {
   try {
-    const currentUserId = req.user.id;
-    const targetUserId = Number(req.params.targetUserId);
-    const result = favoriteService.removeFavorite(currentUserId, targetUserId);
-    res.status(200).json(result);
-  } catch (err) {
-    next(err);
+    const data = favoriteService.removeFavorite(req.session.userId, Number(req.params.targetUserId));
+    return success(res, data);
+  } catch (error) {
+    return next(error);
   }
 }
 
 function listFavorites(req, res, next) {
   try {
-    const currentUserId = req.user.id;
-    const result = favoriteService.listFavorites(currentUserId);
-    res.status(200).json(result);
-  } catch (err) {
-    next(err);
+    const data = favoriteService.listFavorites(req.session.userId);
+    return success(res, data);
+  } catch (error) {
+    return next(error);
   }
 }
 

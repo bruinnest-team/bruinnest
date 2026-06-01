@@ -182,3 +182,17 @@ CREATE TABLE IF NOT EXISTS compatibility_scores (
 CREATE INDEX IF NOT EXISTS idx_compatibility_scores_user_id_score
   ON compatibility_scores (user_id, score_percent);
 
+
+CREATE TABLE IF NOT EXISTS favorites (
+  id INTEGER PRIMARY KEY,
+  user_id INTEGER NOT NULL,
+  target_user_id INTEGER NOT NULL,
+  created_at TEXT NOT NULL,
+  UNIQUE (user_id, target_user_id),
+  CHECK (user_id != target_user_id),
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  FOREIGN KEY (target_user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_favorites_user_id
+  ON favorites (user_id);
