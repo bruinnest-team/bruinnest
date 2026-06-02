@@ -73,6 +73,11 @@ function ProfileDetailPage() {
               <p style={{ color: "#666", marginTop: "0.3rem" }}>
                 Move-in: {profile.moveInDate}
               </p>
+              {profile.compatibilityScore !== null && profile.compatibilityScore !== undefined && (
+                <p style={{ color: "#1e3a5f", fontWeight: "600", marginTop: "0.3rem" }}>
+                  Life style {profile.compatibilityScore}% matching with you
+                </p>
+              )}
 
               <div style={{ marginTop: "1.5rem" }}>
                 <h3 style={{ marginBottom: "0.5rem" }}>About</h3>
