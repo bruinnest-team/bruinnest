@@ -1,5 +1,11 @@
 const housingRepository = require("../repositories/housingRepository");
+const NotFoundError = require("../errors/NotFoundError");
 const { nowISO } = require("../utils/time");
+const {
+  normalizeHousingSearchQuery,
+  requireHousingLinkPayload,
+  requirePositiveInteger,
+} = require("../validations/housingValidation");
 
 function requireText(value, fieldName) {
   if (typeof value !== "string" || value.trim().length === 0) {
@@ -93,6 +99,86 @@ function importHousingCatalog(listings, options = {}) {
   };
 }
 
+function toHousingCard(housingUnit) {
+  return {
+    housingUnitId: housingUnit.housingUnitId,
+    externalId: housingUnit.externalId,
+    name: housingUnit.name,
+    addressLine: housingUnit.addressLine,
+    city: housingUnit.city,
+    state: housingUnit.state,
+    zip: housingUnit.zip,
+    neighborhood: housingUnit.neighborhood,
+    monthlyRent: housingUnit.monthlyRent,
+    bedrooms: housingUnit.bedrooms,
+    bathrooms: housingUnit.bathrooms,
+    lat: housingUnit.lat,
+    lng: housingUnit.lng,
+    photoUrls: housingUnit.photoUrls,
+    listingUrl: housingUnit.listingUrl,
+  };
+}
+
+function searchHousing(query) {
+  const normalizedQuery = normalizeHousingSearchQuery(query);
+  const result = housingRepository.searchHousing(normalizedQuery);
+
+  return {
+    items: result.items.map(toHousingCard),
+    page: result.page,
+    pageSize: result.pageSize,
+    total: result.total,
+  };
+}
+
+function getMyLinkedHousing(currentUserId) {
+  const userId = requirePositiveInteger(currentUserId, "currentUserId");
+  const linkedHousing = housingRepository.findLinkedHousingForUser(userId);
+
+  if (!linkedHousing) {
+    throw new NotFoundError("Linked housing not found.");
+  }
+
+  return toHousingCard(linkedHousing);
+}
+
+function linkMyHousing(currentUserId, body) {
+  const userId = requirePositiveInteger(currentUserId, "currentUserId");
+  const { housingUnitId } = requireHousingLinkPayload(body);
+  const housingUnit = housingRepository.findHousingById(housingUnitId);
+
+  if (!housingUnit) {
+    throw new NotFoundError("Housing unit not found.");
+  }
+
+  const timestamp = nowISO();
+  housingRepository.linkHousingToUser({
+    userId,
+    housingUnitId,
+    linkedAt: timestamp,
+    updatedAt: timestamp,
+  });
+
+  return {
+    housingUnitId,
+    linked: true,
+  };
+}
+
+function unlinkMyHousing(currentUserId) {
+  const userId = requirePositiveInteger(currentUserId, "currentUserId");
+
+  housingRepository.unlinkHousingForUser(userId);
+
+  return {
+    linked: false,
+  };
+}
+
 module.exports = {
   importHousingCatalog,
+  searchHousing,
+  getMyLinkedHousing,
+  linkMyHousing,
+  unlinkMyHousing,
 };
