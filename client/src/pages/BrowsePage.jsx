@@ -149,7 +149,7 @@ function BrowsePage() {
               style={{ border: "1px solid #e2e8f0", padding: "1.2rem", marginTop: "1rem", borderRadius: "8px", cursor: "pointer" }}
             >
               <h3 style={{ margin: "0 0 0.5rem" }}>{profile.displayName}</h3>
-              <p style={{ margin: "0 0 0.3rem", color: "#666" }}>{profile.gender} · Class of {profile.graduationYear}</p>
+              <p style={{ margin: "0 0 0.3rem", color: "#666" }}>{profile.gender.charAt(0).toUpperCase() + profile.gender.slice(1)} · Class of {profile.graduationYear}</p>
               <p style={{ margin: "0 0 0.3rem", color: "#666" }}>Budget: ${profile.budgetMin}–${profile.budgetMax}/mo · Move-in: {profile.moveInDate}</p>
               <p style={{ margin: 0 }}>{profile.bioPreview}</p>
             </div>

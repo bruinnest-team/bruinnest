@@ -65,7 +65,7 @@ function ProfileDetailPage() {
               <p className="page-eyebrow">PROFILE</p>
               <h1>{profile.displayName}</h1>
               <p style={{ color: "#666", marginTop: "0.3rem" }}>
-                {profile.gender} · Class of {profile.graduationYear}
+                {profile.gender.charAt(0).toUpperCase() + profile.gender.slice(1)} · Class of {profile.graduationYear}
               </p>
               <p style={{ color: "#666", marginTop: "0.3rem" }}>
                 Budget: ${profile.budgetMin}–${profile.budgetMax}/mo
