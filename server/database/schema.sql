@@ -71,6 +71,52 @@ CREATE INDEX IF NOT EXISTS idx_profiles_move_in_date
 
 
 
+CREATE TABLE IF NOT EXISTS housing_units (
+  id INTEGER PRIMARY KEY,
+  external_id TEXT NOT NULL UNIQUE CHECK (length(trim(external_id)) > 0),
+  source TEXT NOT NULL CHECK (length(trim(source)) > 0),
+  name TEXT NOT NULL CHECK (length(trim(name)) > 0),
+  address_line TEXT NOT NULL CHECK (length(trim(address_line)) > 0),
+  city TEXT NOT NULL CHECK (length(trim(city)) > 0),
+  state TEXT NOT NULL CHECK (length(trim(state)) > 0),
+  zip TEXT NOT NULL CHECK (length(trim(zip)) > 0),
+  neighborhood TEXT,
+  lat REAL NOT NULL,
+  lng REAL NOT NULL,
+  monthly_rent INTEGER NOT NULL CHECK (monthly_rent >= 0),
+  bedrooms INTEGER NOT NULL CHECK (bedrooms >= 0),
+  bathrooms REAL NOT NULL CHECK (bathrooms >= 0),
+  sqft INTEGER CHECK (sqft IS NULL OR sqft > 0),
+  property_type TEXT NOT NULL CHECK (length(trim(property_type)) > 0),
+  listing_url TEXT NOT NULL CHECK (length(trim(listing_url)) > 0),
+  photo_urls_json TEXT NOT NULL CHECK (length(trim(photo_urls_json)) > 0),
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_housing_units_zip_neighborhood_rent
+  ON housing_units (zip, neighborhood, monthly_rent);
+
+CREATE INDEX IF NOT EXISTS idx_housing_units_bedrooms
+  ON housing_units (bedrooms);
+
+
+
+CREATE TABLE IF NOT EXISTS user_housing_links (
+  id INTEGER PRIMARY KEY,
+  user_id INTEGER NOT NULL UNIQUE,
+  housing_unit_id INTEGER NOT NULL,
+  linked_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  FOREIGN KEY (housing_unit_id) REFERENCES housing_units(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_user_housing_links_housing_unit_id
+  ON user_housing_links (housing_unit_id);
+
+
+
 CREATE TABLE IF NOT EXISTS messages (
   id INTEGER PRIMARY KEY,
   conversation_id INTEGER NOT NULL,
@@ -100,7 +146,6 @@ CREATE TABLE IF NOT EXISTS conversation_participants (
 
 CREATE INDEX IF NOT EXISTS idx_conversation_participants_user_id
   ON conversation_participants (user_id);
-
 
 
 CREATE TABLE IF NOT EXISTS questionnaires (
