@@ -142,6 +142,13 @@ function getMyLinkedHousing(currentUserId) {
   return toHousingCard(linkedHousing);
 }
 
+function getLinkedHousingForUser(targetUserId) {
+  const userId = requirePositiveInteger(targetUserId, "targetUserId");
+  const linkedHousing = housingRepository.findLinkedHousingForUser(userId);
+
+  return linkedHousing ? toHousingCard(linkedHousing) : null;
+}
+
 function linkMyHousing(currentUserId, body) {
   const userId = requirePositiveInteger(currentUserId, "currentUserId");
   const { housingUnitId } = requireHousingLinkPayload(body);
@@ -179,6 +186,7 @@ module.exports = {
   importHousingCatalog,
   searchHousing,
   getMyLinkedHousing,
+  getLinkedHousingForUser,
   linkMyHousing,
   unlinkMyHousing,
 };

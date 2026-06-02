@@ -49,6 +49,13 @@ function Navbar() {
 
       <div style={{ display: "flex", alignItems: "center", gap: "1.5rem" }}>
         <Link
+          to="/housing"
+          style={{ color: "#1e3a5f", textDecoration: "none", fontSize: "0.95rem" }}
+        >
+          Housing
+        </Link>
+
+        <Link
           to="/questionnaire"
           style={{ color: "#1e3a5f", textDecoration: "none", fontSize: "0.95rem" }}
         >

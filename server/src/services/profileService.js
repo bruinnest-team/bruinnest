@@ -1,5 +1,6 @@
 const profileRepository = require("../repositories/profileRepository");
 const userRepository = require("../repositories/userRepository");
+const housingService = require("./housingService");
 const ConflictError = require("../errors/ConflictError");
 const NotFoundError = require("../errors/NotFoundError");
 const {
@@ -46,6 +47,7 @@ function toProfileDetail(profile, currentUserId) {
     budgetMax: profile.budgetMax,
     moveInDate: profile.moveInDate,
     bio: profile.bio,
+    linkedHousing: housingService.getLinkedHousingForUser(profile.userId),
     compatibilityScore: profile.compatibilityScore,
     canMessage: currentUserId !== profile.userId,
   };
