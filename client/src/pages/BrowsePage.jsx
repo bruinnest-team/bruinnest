@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { getProfiles } from "../lib/api/profile";
-import { addFavorite, removeFavorite } from "../lib/api/favorite";
+import { addFavorite, removeFavorite, listFavorites } from "../lib/api/favorite";
 import Navbar from "../shared/components/Navbar";
 
 const PAGE_SIZE = 10;
@@ -43,6 +43,19 @@ function BrowsePage() {
   }
 
   // Reload whenever the page changes (search resets to page 1 below).
+  useEffect(() => {
+    loadFavoriteIds();
+  }, []);
+
+  async function loadFavoriteIds() {
+    try {
+      const res = await listFavorites();
+      setFavoriteIds(res.data.items.map((item) => item.userId));
+    } catch (err) {
+      setFavoriteIds([]);
+    }
+  }
+
   useEffect(() => {
     loadProfiles();
     // eslint-disable-next-line react-hooks/exhaustive-deps
