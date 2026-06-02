@@ -101,3 +101,39 @@ CREATE TABLE IF NOT EXISTS conversation_participants (
 CREATE INDEX IF NOT EXISTS idx_conversation_participants_user_id
   ON conversation_participants (user_id);
 
+
+
+CREATE TABLE IF NOT EXISTS questionnaires (
+  id INTEGER PRIMARY KEY,
+  user_id INTEGER NOT NULL UNIQUE,
+  sleep_schedule TEXT NOT NULL CHECK (length(trim(sleep_schedule)) > 0),
+  cleanliness_level TEXT NOT NULL CHECK (length(trim(cleanliness_level)) > 0),
+  noise_tolerance TEXT NOT NULL CHECK (length(trim(noise_tolerance)) > 0),
+  guest_policy TEXT NOT NULL CHECK (length(trim(guest_policy)) > 0),
+  study_habits TEXT NOT NULL CHECK (length(trim(study_habits)) > 0),
+  smoking_preference TEXT NOT NULL CHECK (length(trim(smoking_preference)) > 0),
+  drinking_preference TEXT NOT NULL CHECK (length(trim(drinking_preference)) > 0),
+  sharing_preference TEXT NOT NULL CHECK (length(trim(sharing_preference)) > 0),
+  pet_comfort TEXT NOT NULL CHECK (length(trim(pet_comfort)) > 0),
+  communication_style TEXT NOT NULL CHECK (length(trim(communication_style)) > 0),
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+
+
+CREATE TABLE IF NOT EXISTS compatibility_scores (
+  id INTEGER PRIMARY KEY,
+  user_id INTEGER NOT NULL,
+  other_user_id INTEGER NOT NULL,
+  score_percent INTEGER NOT NULL CHECK (score_percent >= 0 AND score_percent <= 100),
+  calculated_at TEXT NOT NULL,
+  UNIQUE (user_id, other_user_id),
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  FOREIGN KEY (other_user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_compatibility_scores_user_id_score
+  ON compatibility_scores (user_id, score_percent);
+
