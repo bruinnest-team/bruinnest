@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { getProfiles } from "../lib/api/profile";
+import { addFavorite, removeFavorite, listFavorites } from "../lib/api/favorite";
 import Navbar from "../shared/components/Navbar";
 
 const PAGE_SIZE = 10;
@@ -19,8 +20,42 @@ function BrowsePage() {
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const navigate = useNavigate();
+  const [favoriteIds, setFavoriteIds] = useState([]);
+  const [favBusy, setFavBusy] = useState(null);
+
+  async function toggleFavorite(e, userId) {
+    e.stopPropagation();
+    if (favBusy) return;
+    setFavBusy(userId);
+    const isFav = favoriteIds.includes(userId);
+    try {
+      if (isFav) {
+        await removeFavorite(userId);
+        setFavoriteIds((ids) => ids.filter((id) => id !== userId));
+      } else {
+        await addFavorite(userId);
+        setFavoriteIds((ids) => [...ids, userId]);
+      }
+    } catch (err) {
+      alert(err.message || "Could not update favorite.");
+    }
+    setFavBusy(null);
+  }
 
   // Reload whenever the page changes (search resets to page 1 below).
+  useEffect(() => {
+    loadFavoriteIds();
+  }, []);
+
+  async function loadFavoriteIds() {
+    try {
+      const res = await listFavorites();
+      setFavoriteIds(res.data.items.map((item) => item.userId));
+    } catch (err) {
+      setFavoriteIds([]);
+    }
+  }
+
   useEffect(() => {
     loadProfiles();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -158,7 +193,18 @@ function BrowsePage() {
               onClick={() => navigate("/profiles/" + profile.userId)}
               style={{ border: "1px solid #e2e8f0", padding: "1.2rem", marginTop: "1rem", borderRadius: "8px", cursor: "pointer" }}
             >
-              <h3 style={{ margin: "0 0 0.5rem" }}>{profile.displayName}</h3>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                <h3 style={{ margin: "0 0 0.5rem" }}>{profile.displayName}</h3>
+                <button
+                  type="button"
+                  onClick={(e) => toggleFavorite(e, profile.userId)}
+                  disabled={favBusy === profile.userId}
+                  style={{ background: "none", border: "none", cursor: "pointer", fontSize: "1.4rem", lineHeight: 1, color: favoriteIds.includes(profile.userId) ? "#e0245e" : "#ccc" }}
+                  aria-label="Toggle favorite"
+                >
+                  {favoriteIds.includes(profile.userId) ? "♥" : "♡"}
+                </button>
+              </div>
               <p style={{ margin: "0 0 0.3rem", color: "#666" }}>{profile.gender} · Class of {profile.graduationYear}</p>
               <p style={{ margin: "0 0 0.3rem", color: "#666" }}>Budget: ${profile.budgetMin}–${profile.budgetMax}/mo · Move-in: {profile.moveInDate}</p>
               {profile.compatibilityScore !== null && profile.compatibilityScore !== undefined && (

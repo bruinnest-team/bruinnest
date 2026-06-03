@@ -63,6 +63,13 @@ function Navbar() {
         </Link>
 
         <Link
+          to="/favorites"
+          style={{ color: "#1e3a5f", textDecoration: "none", fontSize: "0.95rem" }}
+        >
+          Favorites
+        </Link>
+
+        <Link
           to="/messages"
           style={{ color: "#1e3a5f", textDecoration: "none", fontSize: "0.95rem", display: "flex", alignItems: "center", gap: "0.4rem" }}
         >
