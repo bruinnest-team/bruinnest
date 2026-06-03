@@ -193,8 +193,17 @@ function BrowsePage() {
               onClick={() => navigate("/profiles/" + profile.userId)}
               style={{ border: "1px solid #e2e8f0", padding: "1.2rem", marginTop: "1rem", borderRadius: "8px", cursor: "pointer" }}
             >
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                <h3 style={{ margin: "0 0 0.5rem" }}>{profile.displayName}</h3>
+              <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "0.5rem" }}>
+                {profile.avatarUrl ? (
+                  <img
+                    src={profile.avatarUrl}
+                    alt={profile.displayName}
+                    className="avatar-thumb"
+                  />
+                ) : (
+                  <div className="avatar-missing">{profile.displayName?.charAt(0).toUpperCase()}</div>
+                )}
+                <h3 style={{ margin: 0, flex: 1 }}>{profile.displayName}</h3>
                 <button
                   type="button"
                   onClick={(e) => toggleFavorite(e, profile.userId)}

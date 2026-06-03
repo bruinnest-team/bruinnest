@@ -51,6 +51,7 @@ CREATE TABLE IF NOT EXISTS profiles (
   budget_max INTEGER NOT NULL CHECK (budget_max >= budget_min),
   move_in_date TEXT NOT NULL CHECK (length(trim(move_in_date)) > 0),
   bio TEXT NOT NULL CHECK (length(trim(bio)) > 0),
+  avatar_url TEXT,
   profile_completed INTEGER NOT NULL DEFAULT 0 CHECK (profile_completed IN (0, 1)),
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL,

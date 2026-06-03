@@ -20,3 +20,20 @@ export async function apiRequest(path, options = {}) {
 
   return data;
 }
+
+export async function apiUpload(path, formData) {
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    method: "PUT",
+    credentials: "include",
+    body: formData,
+  });
+
+  const data = await response.json().catch(() => null);
+
+  if (!response.ok) {
+    const message = data?.error?.message ?? "Upload failed";
+    throw new Error(message);
+  }
+
+  return data;
+}

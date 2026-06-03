@@ -95,6 +95,23 @@ function ProfileDetailPage() {
             <>
               <p className="page-eyebrow">PROFILE</p>
               <h1>{profile.displayName}</h1>
+
+              {profile.avatarUrl && (
+                <img
+                  src={profile.avatarUrl}
+                  alt={profile.displayName}
+                  style={{
+                    width: "120px",
+                    height: "120px",
+                    borderRadius: "50%",
+                    objectFit: "cover",
+                    border: "2px solid #e2e8f0",
+                    marginTop: "0.5rem",
+                    marginBottom: "0.5rem",
+                  }}
+                />
+              )}
+
               <p style={{ color: "#666", marginTop: "0.3rem" }}>
                 {profile.gender} · Class of {profile.graduationYear}
               </p>

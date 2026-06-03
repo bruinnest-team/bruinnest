@@ -12,6 +12,7 @@ const findByUserIdStatement = db.prepare(`
     budget_max,
     move_in_date,
     bio,
+    avatar_url,
     profile_completed,
     created_at,
     updated_at
@@ -57,6 +58,7 @@ const findPublicProfileByUserIdStatement = db.prepare(`
     budget_max,
     move_in_date,
     bio,
+    avatar_url,
     profile_completed,
     created_at,
     updated_at,
@@ -83,6 +85,7 @@ function mapProfileRow(row) {
     budgetMax: row.budget_max,
     moveInDate: row.move_in_date,
     bio: row.bio,
+    avatarUrl: row.avatar_url || null,
     profileCompleted: row.profile_completed === 1,
     compatibilityScore: row.compatibility_score ?? null,
     createdAt: row.created_at,
@@ -257,6 +260,7 @@ function searchProfiles({
       budget_max,
       move_in_date,
       bio,
+      avatar_url,
       profile_completed,
       created_at,
       updated_at,
@@ -297,10 +301,22 @@ function findPublicProfileByUserId(userId, currentUserId = null) {
   return mapProfileRow(findPublicProfileByUserIdStatement.get({ userId, currentUserId }));
 }
 
+const updateAvatarStatement = db.prepare(`
+  UPDATE profiles
+  SET avatar_url = @avatarUrl, updated_at = ${timestampExpression}
+  WHERE user_id = @userId
+`);
+
+function updateAvatar(userId, avatarUrl) {
+  updateAvatarStatement.run({ userId, avatarUrl });
+  return findByUserId(userId);
+}
+
 module.exports = {
   findByUserId,
   createProfile,
   updateProfile,
   searchProfiles,
   findPublicProfileByUserId,
+  updateAvatar,
 };

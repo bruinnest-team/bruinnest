@@ -3,6 +3,7 @@ const userRepository = require("../repositories/userRepository");
 const housingService = require("./housingService");
 const ConflictError = require("../errors/ConflictError");
 const NotFoundError = require("../errors/NotFoundError");
+const ValidationError = require("../errors/ValidationError");
 const {
   normalizeProfileQuery,
   requirePositiveInteger,
@@ -19,6 +20,7 @@ function toEditableProfile(profile) {
     budgetMax: profile.budgetMax,
     moveInDate: profile.moveInDate,
     bio: profile.bio,
+    avatarUrl: profile.avatarUrl || null,
     profileCompleted: profile.profileCompleted,
   };
 }
@@ -33,6 +35,7 @@ function toProfileSummary(profile) {
     budgetMax: profile.budgetMax,
     moveInDate: profile.moveInDate,
     bioPreview: profile.bio.slice(0, 120),
+    avatarUrl: profile.avatarUrl || null,
     compatibilityScore: profile.compatibilityScore,
   };
 }
@@ -47,6 +50,7 @@ function toProfileDetail(profile, currentUserId) {
     budgetMax: profile.budgetMax,
     moveInDate: profile.moveInDate,
     bio: profile.bio,
+    avatarUrl: profile.avatarUrl || null,
     linkedHousing: housingService.getLinkedHousingForUser(profile.userId),
     compatibilityScore: profile.compatibilityScore,
     canMessage: currentUserId !== profile.userId,
@@ -136,10 +140,31 @@ function getProfileDetail(currentUserId, targetUserId) {
   return toProfileDetail(profile, userId);
 }
 
+function uploadMyAvatar(currentUserId, filename) {
+  const userId = requirePositiveInteger(currentUserId, "currentUserId");
+
+  if (!filename || typeof filename !== "string") {
+    throw new ValidationError("No file uploaded.");
+  }
+
+  const existingProfile = profileRepository.findByUserId(userId);
+  if (!existingProfile) {
+    throw new NotFoundError(
+      "Profile not found. Please create a profile first."
+    );
+  }
+
+  const avatarUrl = `/uploads/avatars/${filename}`;
+  const updated = profileRepository.updateAvatar(userId, avatarUrl);
+
+  return { avatarUrl: updated.avatarUrl };
+}
+
 module.exports = {
   createProfile,
   getMyProfile,
   updateProfile,
   listProfiles,
   getProfileDetail,
+  uploadMyAvatar,
 };
