@@ -4,6 +4,7 @@ import LoginPage from "../pages/LoginPage";
 import MessagesPage from "../pages/MessagesPage";
 import ProfileDetailPage from "../pages/ProfileDetailPage";
 import ProfileSetupPage from "../pages/ProfileSetupPage";
+import QuestionnairePage from "../pages/QuestionnairePage";
 import RegisterPage from "../pages/RegisterPage";
 import ProtectedRoute from "./ProtectedRoute";
 import PublicRoute from "./PublicRoute";
@@ -15,6 +16,7 @@ function AppRouter() {
       <Route path="/register" element={<PublicRoute><RegisterPage /></PublicRoute>} />
       <Route path="/profile/setup" element={<ProtectedRoute><ProfileSetupPage /></ProtectedRoute>} />
       <Route path="/browse" element={<ProtectedRoute><BrowsePage /></ProtectedRoute>} />
+      <Route path="/questionnaire" element={<ProtectedRoute><QuestionnairePage /></ProtectedRoute>} />
       <Route path="/profiles/:userId" element={<ProtectedRoute><ProfileDetailPage /></ProtectedRoute>} />
       <Route path="/messages" element={<ProtectedRoute><MessagesPage /></ProtectedRoute>} />
       <Route path="/" element={<Navigate to="/login" replace />} />

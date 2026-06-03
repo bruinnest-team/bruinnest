@@ -194,6 +194,14 @@ function normalizeProfileQuery(query = {}) {
     normalizedQuery.moveInDate = parseMoveInDate(query.moveInDate);
   }
 
+  if (hasQueryValue(query.sortBy) && !isEmptyOptionalQueryValue(query.sortBy)) {
+    const sortBy = query.sortBy.trim();
+    if (sortBy !== "latest" && sortBy !== "compatibility") {
+      throw new ValidationError("sortBy must be 'latest' or 'compatibility'.");
+    }
+    normalizedQuery.sortBy = sortBy;
+  }
+
   return normalizedQuery;
 }
 

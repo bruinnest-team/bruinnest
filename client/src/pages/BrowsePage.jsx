@@ -15,6 +15,7 @@ function BrowsePage() {
   const [budgetMin, setBudgetMin] = useState("");
   const [budgetMax, setBudgetMax] = useState("");
   const [moveInDate, setMoveInDate] = useState("");
+  const [sortBy, setSortBy] = useState("latest");
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const navigate = useNavigate();
@@ -36,6 +37,7 @@ function BrowsePage() {
       if (budgetMin) parts.push("budgetMin=" + encodeURIComponent(budgetMin));
       if (budgetMax) parts.push("budgetMax=" + encodeURIComponent(budgetMax));
       if (moveInDate) parts.push("moveInDate=" + encodeURIComponent(moveInDate));
+      if (sortBy) parts.push("sortBy=" + encodeURIComponent(sortBy));
       parts.push("page=" + page);
       parts.push("pageSize=" + PAGE_SIZE);
       const query = "?" + parts.join("&");
@@ -135,6 +137,14 @@ function BrowsePage() {
               />
             </div>
 
+            <div className="form-field">
+              <label>Sort By</label>
+              <select className="form-input" value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
+                <option value="latest">Latest Active</option>
+                <option value="compatibility">Lifestyle</option>
+              </select>
+            </div>
+
             <button className="btn-primary" type="submit">Search</button>
           </form>
 
@@ -151,6 +161,11 @@ function BrowsePage() {
               <h3 style={{ margin: "0 0 0.5rem" }}>{profile.displayName}</h3>
               <p style={{ margin: "0 0 0.3rem", color: "#666" }}>{profile.gender} · Class of {profile.graduationYear}</p>
               <p style={{ margin: "0 0 0.3rem", color: "#666" }}>Budget: ${profile.budgetMin}–${profile.budgetMax}/mo · Move-in: {profile.moveInDate}</p>
+              {profile.compatibilityScore !== null && profile.compatibilityScore !== undefined && (
+                <p style={{ margin: "0 0 0.3rem", color: "#1e3a5f", fontWeight: "600" }}>
+                  Lifestyle {profile.compatibilityScore}% matching with you
+                </p>
+              )}
               <p style={{ margin: 0 }}>{profile.bioPreview}</p>
             </div>
           ))}

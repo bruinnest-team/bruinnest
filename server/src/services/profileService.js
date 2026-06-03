@@ -32,6 +32,7 @@ function toProfileSummary(profile) {
     budgetMax: profile.budgetMax,
     moveInDate: profile.moveInDate,
     bioPreview: profile.bio.slice(0, 120),
+    compatibilityScore: profile.compatibilityScore,
   };
 }
 
@@ -45,6 +46,7 @@ function toProfileDetail(profile, currentUserId) {
     budgetMax: profile.budgetMax,
     moveInDate: profile.moveInDate,
     bio: profile.bio,
+    compatibilityScore: profile.compatibilityScore,
     canMessage: currentUserId !== profile.userId,
   };
 }
@@ -123,7 +125,7 @@ function listProfiles(currentUserId, query) {
 function getProfileDetail(currentUserId, targetUserId) {
   const userId = requirePositiveInteger(currentUserId, "currentUserId");
   const targetId = requirePositiveInteger(targetUserId, "targetUserId");
-  const profile = profileRepository.findPublicProfileByUserId(targetId);
+  const profile = profileRepository.findPublicProfileByUserId(targetId, userId);
 
   if (!profile) {
     throw new NotFoundError("Profile not found.");

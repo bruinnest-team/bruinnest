@@ -59,9 +59,13 @@ const findPublicProfileByUserIdStatement = db.prepare(`
     bio,
     profile_completed,
     created_at,
-    updated_at
+    updated_at,
+    (
+      SELECT score_percent FROM compatibility_scores
+      WHERE user_id = @currentUserId AND other_user_id = profiles.user_id
+    ) AS compatibility_score
   FROM profiles
-  WHERE user_id = ?
+  WHERE user_id = @userId
     AND profile_completed = 1
 `);
 
@@ -80,6 +84,7 @@ function mapProfileRow(row) {
     moveInDate: row.move_in_date,
     bio: row.bio,
     profileCompleted: row.profile_completed === 1,
+    compatibilityScore: row.compatibility_score ?? null,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -221,6 +226,7 @@ function searchProfiles({
   budgetMax,
   moveInDate,
   keyword,
+  sortBy = "latest",
 }) {
   const safePage = Math.max(1, Number(page) || 1);
   const safePageSize = Math.max(1, Number(pageSize) || 10);
@@ -236,6 +242,11 @@ function searchProfiles({
     keyword,
   });
 
+  const orderByClause =
+    sortBy === "compatibility"
+      ? "IFNULL(compatibility_score, -1) DESC, updated_at DESC, user_id ASC"
+      : "updated_at DESC, user_id ASC";
+
   const itemsStatement = db.prepare(`
     SELECT
       user_id,
@@ -248,10 +259,14 @@ function searchProfiles({
       bio,
       profile_completed,
       created_at,
-      updated_at
+      updated_at,
+      (
+        SELECT score_percent FROM compatibility_scores
+        WHERE user_id = @currentUserId AND other_user_id = profiles.user_id
+      ) AS compatibility_score
     FROM profiles
     ${whereClause}
-    ORDER BY updated_at DESC, user_id ASC
+    ORDER BY ${orderByClause}
     LIMIT @limit OFFSET @offset
   `);
 
@@ -278,8 +293,8 @@ function searchProfiles({
   };
 }
 
-function findPublicProfileByUserId(userId) {
-  return mapProfileRow(findPublicProfileByUserIdStatement.get(userId));
+function findPublicProfileByUserId(userId, currentUserId = null) {
+  return mapProfileRow(findPublicProfileByUserIdStatement.get({ userId, currentUserId }));
 }
 
 module.exports = {
