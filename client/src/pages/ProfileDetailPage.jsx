@@ -84,6 +84,37 @@ function ProfileDetailPage() {
                 <p style={{ whiteSpace: "pre-wrap" }}>{profile.bio}</p>
               </div>
 
+              {profile.linkedHousing && (
+                <div style={{ border: "1px solid #e2e8f0", borderRadius: "8px", marginTop: "1.5rem", background: "#f8fafc", overflow: "hidden" }}>
+                  {profile.linkedHousing.photoUrls?.[0] && (
+                    <img
+                      src={profile.linkedHousing.photoUrls[0]}
+                      alt=""
+                      style={{ width: "100%", height: "180px", objectFit: "cover", display: "block" }}
+                    />
+                  )}
+                  <div style={{ padding: "1rem" }}>
+                    <p className="page-eyebrow" style={{ marginBottom: "0.25rem" }}>LINKED HOUSING</p>
+                    <h3 style={{ margin: "0 0 0.4rem" }}>{profile.linkedHousing.name}</h3>
+                    <p style={{ margin: "0 0 0.3rem", color: "#666" }}>
+                      {profile.linkedHousing.addressLine}, {profile.linkedHousing.city}
+                    </p>
+                    <p style={{ margin: "0 0 0.8rem", color: "#666" }}>
+                      ${profile.linkedHousing.monthlyRent}/mo · {profile.linkedHousing.bedrooms} bed · {profile.linkedHousing.bathrooms} bath
+                    </p>
+                    <a
+                      className="btn-secondary"
+                      href={profile.linkedHousing.listingUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      style={{ textDecoration: "none", display: "inline-block" }}
+                    >
+                      View Listing
+                    </a>
+                  </div>
+                </div>
+              )}
+
               {profile.canMessage && (
                 <button
                   className="btn-primary"

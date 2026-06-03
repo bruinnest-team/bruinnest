@@ -10,6 +10,7 @@ const {
   messagesRouter,
 } = require("./routes/messageRoutes");
 const profileRoutes = require("./routes/profileRoutes");
+const housingRoutes = require("./routes/housingRoutes");
 const questionnaireRoutes = require("./routes/questionnaireRoutes");
 
 const app = express();
@@ -49,6 +50,7 @@ app.use("/api/conversations", conversationsRouter);
 app.use("/api/messages", messagesRouter);
 app.use("/api", profileRoutes);
 app.use("/api", questionnaireRoutes);
+app.use("/api/housing", housingRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler);

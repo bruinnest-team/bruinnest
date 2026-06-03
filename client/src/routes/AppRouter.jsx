@@ -1,5 +1,6 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 import BrowsePage from "../pages/BrowsePage";
+import HousingPage from "../pages/HousingPage";
 import LoginPage from "../pages/LoginPage";
 import MessagesPage from "../pages/MessagesPage";
 import ProfileDetailPage from "../pages/ProfileDetailPage";
@@ -17,6 +18,7 @@ function AppRouter() {
       <Route path="/profile/setup" element={<ProtectedRoute><ProfileSetupPage /></ProtectedRoute>} />
       <Route path="/browse" element={<ProtectedRoute><BrowsePage /></ProtectedRoute>} />
       <Route path="/questionnaire" element={<ProtectedRoute><QuestionnairePage /></ProtectedRoute>} />
+      <Route path="/housing" element={<ProtectedRoute><HousingPage /></ProtectedRoute>} />
       <Route path="/profiles/:userId" element={<ProtectedRoute><ProfileDetailPage /></ProtectedRoute>} />
       <Route path="/messages" element={<ProtectedRoute><MessagesPage /></ProtectedRoute>} />
       <Route path="/" element={<Navigate to="/login" replace />} />
