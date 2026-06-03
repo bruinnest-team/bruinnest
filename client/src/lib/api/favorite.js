@@ -1,9 +1,8 @@
 import { apiRequest } from "./client";
 
 export function addFavorite(targetUserId) {
-  return apiRequest("/favorites", {
+  return apiRequest(`/favorites/${targetUserId}`, {
     method: "POST",
-    body: JSON.stringify({ targetUserId }),
   });
 }
 

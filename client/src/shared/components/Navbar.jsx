@@ -60,6 +60,9 @@ function Navbar() {
           style={{ color: "#1e3a5f", textDecoration: "none", fontSize: "0.95rem" }}
         >
           Questionnaire
+        </Link>
+
+        <Link
           to="/favorites"
           style={{ color: "#1e3a5f", textDecoration: "none", fontSize: "0.95rem" }}
         >

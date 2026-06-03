@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { getProfileById } from "../lib/api/profile";
 import { createOrGetConversation } from "../lib/api/messages";
+import { addFavorite, removeFavorite, listFavorites } from "../lib/api/favorite";
 import Navbar from "../shared/components/Navbar";
 
 function ProfileDetailPage() {
@@ -12,9 +13,12 @@ function ProfileDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [messaging, setMessaging] = useState(false);
+  const [isFavorite, setIsFavorite] = useState(false);
+  const [favBusy, setFavBusy] = useState(false);
 
   useEffect(() => {
     loadProfile();
+    loadFavorite();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId]);
 
@@ -30,6 +34,16 @@ function ProfileDetailPage() {
     setLoading(false);
   }
 
+  async function loadFavorite() {
+    try {
+      const res = await listFavorites();
+      const ids = res.data.items.map((item) => item.userId);
+      setIsFavorite(ids.includes(Number(userId)));
+    } catch (err) {
+      setIsFavorite(false);
+    }
+  }
+
   async function handleSendMessage() {
     setMessaging(true);
     setError("");
@@ -41,6 +55,23 @@ function ProfileDetailPage() {
       setError(err.message || "Could not start a conversation. Please try again.");
       setMessaging(false);
     }
+  }
+
+  async function handleToggleFavorite() {
+    if (favBusy) return;
+    setFavBusy(true);
+    try {
+      if (isFavorite) {
+        await removeFavorite(Number(userId));
+        setIsFavorite(false);
+      } else {
+        await addFavorite(Number(userId));
+        setIsFavorite(true);
+      }
+    } catch (err) {
+      setError(err.message || "Could not update favorite.");
+    }
+    setFavBusy(false);
   }
 
   return (
@@ -115,17 +146,26 @@ function ProfileDetailPage() {
                 </div>
               )}
 
-              {profile.canMessage && (
+              <div style={{ display: "flex", gap: "0.8rem", marginTop: "1.5rem" }}>
+                {profile.canMessage && (
+                  <button
+                    className="btn-primary"
+                    type="button"
+                    onClick={handleSendMessage}
+                    disabled={messaging}
+                  >
+                    {messaging ? "Starting..." : "Send Message"}
+                  </button>
+                )}
                 <button
-                  className="btn-primary"
+                  className="btn-secondary"
                   type="button"
-                  onClick={handleSendMessage}
-                  disabled={messaging}
-                  style={{ marginTop: "1.5rem" }}
+                  onClick={handleToggleFavorite}
+                  disabled={favBusy}
                 >
-                  {messaging ? "Starting..." : "Send Message"}
+                  {isFavorite ? "♥ Favorited" : "♡ Add to Favorites"}
                 </button>
-              )}
+              </div>
             </>
           )}
         </section>
