@@ -3,7 +3,7 @@ const { success } = require("../utils/apiResponse");
 
 function addFavorite(req, res, next) {
   try {
-    const data = favoriteService.addFavorite(req.session.userId, req.body.targetUserId);
+    const data = favoriteService.addFavorite(req.session.userId, Number(req.params.targetUserId));
     return success(res, data, 201);
   } catch (error) {
     return next(error);
