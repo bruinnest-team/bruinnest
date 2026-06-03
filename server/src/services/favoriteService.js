@@ -1,5 +1,4 @@
 const favoriteRepository = require("../repositories/favoriteRepository");
-const profileRepository = require("../repositories/profileRepository");
 const userRepository = require("../repositories/userRepository");
 const NotFoundError = require("../errors/NotFoundError");
 const ValidationError = require("../errors/ValidationError");
@@ -20,16 +19,14 @@ function addFavorite(currentUserId, targetUserId) {
     throw new NotFoundError("Target user not found.");
   }
 
-  const existing = favoriteRepository.findFavorite(userId, otherUserId);
-
-  if (existing) {
-    throw new ConflictError("Profile is already in your favorites.");
-  }
-
   const favorite = favoriteRepository.createFavorite({
     userId,
     targetUserId: otherUserId,
   });
+
+  if (!favorite) {
+    throw new ConflictError("Profile is already in your favorites.");
+  }
 
   return {
     favoriteId: favorite.id,

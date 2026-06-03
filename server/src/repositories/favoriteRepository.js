@@ -23,7 +23,7 @@ const findFavoriteByIdStatement = db.prepare(`
 `);
 
 const createFavoriteStatement = db.prepare(`
-  INSERT INTO favorites (
+  INSERT OR IGNORE INTO favorites (
     user_id,
     target_user_id,
     created_at
@@ -92,6 +92,10 @@ function findFavorite(userId, targetUserId) {
 
 function createFavorite({ userId, targetUserId }) {
   const result = createFavoriteStatement.run({ userId, targetUserId });
+
+  if (result.changes === 0) {
+    return null;
+  }
 
   return mapFavoriteRow(findFavoriteByIdStatement.get(result.lastInsertRowid));
 }
