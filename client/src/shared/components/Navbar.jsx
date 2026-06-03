@@ -71,6 +71,13 @@ function Navbar() {
         </Link>
 
         <Link
+          to="/map"
+          style={{ color: "#1e3a5f", textDecoration: "none", fontSize: "0.95rem" }}
+        >
+          Map
+        </Link>
+
+        <Link
           to="/messages"
           style={{ color: "#1e3a5f", textDecoration: "none", fontSize: "0.95rem", display: "flex", alignItems: "center", gap: "0.4rem" }}
         >
