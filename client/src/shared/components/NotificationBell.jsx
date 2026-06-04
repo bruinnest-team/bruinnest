@@ -1,4 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   getNotifications,
   markNotificationRead,
@@ -7,46 +9,42 @@ import {
 
 function NotificationBell() {
   const [open, setOpen] = useState(false);
-  const [items, setItems] = useState([]);
-  const [unreadCount, setUnreadCount] = useState(0);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    loadNotifications();
-    const timer = setInterval(loadNotifications, 5000);
-    return () => clearInterval(timer);
-  }, []);
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ["notifications"],
+    queryFn: () =>
+      getNotifications({ page: 1, pageSize: 10 }).then((res) => res.data),
+    refetchInterval: 5000,
+  });
 
-  async function loadNotifications() {
-    setLoading(true);
-    try {
-      const res = await getNotifications({ page: 1, pageSize: 10 });
-      setItems(res.data.items);
-      setUnreadCount(res.data.unreadCount);
-      setError(null);
-    } catch (err) {
-      setError("Could not load notifications.");
-    } finally {
-      setLoading(false);
+  const items = data?.items ?? [];
+  const unreadCount = data?.unreadCount ?? 0;
+
+  const markOneMutation = useMutation({
+    mutationFn: (notificationId) => markNotificationRead(notificationId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
+    },
+  });
+
+  const markAllMutation = useMutation({
+    mutationFn: () => markAllNotificationsRead(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
+    },
+  });
+
+  function handleNotificationClick(item) {
+    if (!item.isRead) {
+      markOneMutation.mutate(item.id);
     }
-  }
-
-  async function handleMarkRead(notificationId) {
-    try {
-      await markNotificationRead(notificationId);
-      await loadNotifications();
-    } catch (err) {
-      setError("Could not load notifications.");
-    }
-  }
-
-  async function handleMarkAllRead() {
-    try {
-      await markAllNotificationsRead();
-      await loadNotifications();
-    } catch (err) {
-      setError("Could not load notifications.");
+    setOpen(false);
+    if (item.referenceType === "conversation") {
+      navigate("/messages", { state: { conversationId: item.referenceId } });
+    } else if (item.referenceType === "profile") {
+      navigate(`/profiles/${item.referenceId}`);
     }
   }
 
@@ -114,7 +112,7 @@ function NotificationBell() {
             {unreadCount > 0 && (
               <button
                 type="button"
-                onClick={handleMarkAllRead}
+                onClick={() => markAllMutation.mutate()}
                 style={{
                   background: "none",
                   border: "none",
@@ -129,11 +127,11 @@ function NotificationBell() {
           </div>
 
           <div style={{ maxHeight: "360px", overflowY: "auto" }}>
-            {loading && items.length === 0 ? (
+            {isLoading ? (
               <p style={{ padding: "0.9rem", margin: 0, color: "#64748b", fontSize: "0.85rem" }}>
                 Loading…
               </p>
-            ) : error && items.length === 0 ? (
+            ) : isError ? (
               <p style={{ padding: "0.9rem", margin: 0, color: "#ef4444", fontSize: "0.85rem" }}>
                 Could not load notifications.
               </p>
@@ -145,10 +143,12 @@ function NotificationBell() {
               items.map((item) => (
                 <div
                   key={item.id}
+                  onClick={() => handleNotificationClick(item)}
                   style={{
                     padding: "0.7rem 0.9rem",
                     borderBottom: "1px solid #f1f5f9",
                     background: item.isRead ? "#ffffff" : "#eff6ff",
+                    cursor: "pointer",
                   }}
                 >
                   <div style={{
@@ -167,7 +167,7 @@ function NotificationBell() {
                     {!item.isRead && (
                       <button
                         type="button"
-                        onClick={() => handleMarkRead(item.id)}
+                        onClick={() => markOneMutation.mutate(item.id)}
                         style={{
                           background: "none",
                           border: "none",

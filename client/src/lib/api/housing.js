@@ -20,3 +20,7 @@ export function unlinkMyHousing() {
     method: "DELETE",
   });
 }
+
+export function getHousingMapData(params = "") {
+  return apiRequest(`/housing/map${params}`);
+}

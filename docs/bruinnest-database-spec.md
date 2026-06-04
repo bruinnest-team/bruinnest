@@ -271,12 +271,12 @@ Fields:
 
 - `id` INTEGER PRIMARY KEY
 - `user_id` INTEGER NOT NULL
-- `favorited_user_id` INTEGER NOT NULL
+- `target_user_id` INTEGER NOT NULL
 - `created_at` TEXT NOT NULL
 
 Constraints:
 
-- UNIQUE (`user_id`, `favorited_user_id`)
+- UNIQUE (`user_id`, `target_user_id`)
 
 Notes:
 
@@ -457,7 +457,7 @@ When the team creates or updates the SQL schema, the following should be reflect
 - explicit uniqueness for `conversation_participants (conversation_id, user_id)`
 - explicit uniqueness for `questionnaires.user_id`
 - explicit uniqueness for `compatibility_scores (user_id, other_user_id)`
-- explicit uniqueness for `favorites (user_id, favorited_user_id)`
+- explicit uniqueness for `favorites (user_id, target_user_id)`
 - explicit uniqueness for `housing_units.external_id`
 - explicit uniqueness for `user_housing_links.user_id`
 - all timestamp fields should be stored as ISO 8601 UTC text strings

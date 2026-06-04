@@ -51,6 +51,7 @@ CREATE TABLE IF NOT EXISTS profiles (
   budget_max INTEGER NOT NULL CHECK (budget_max >= budget_min),
   move_in_date TEXT NOT NULL CHECK (length(trim(move_in_date)) > 0),
   bio TEXT NOT NULL CHECK (length(trim(bio)) > 0),
+  avatar_url TEXT,
   profile_completed INTEGER NOT NULL DEFAULT 0 CHECK (profile_completed IN (0, 1)),
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL,
@@ -195,7 +196,7 @@ CREATE TABLE IF NOT EXISTS favorites (
 );
 
 CREATE INDEX IF NOT EXISTS idx_favorites_user_id
-  ON favorites (user_id);
+  ON favorites (user_id, created_at);
 
 
 
@@ -205,16 +206,13 @@ CREATE TABLE IF NOT EXISTS notifications (
   type TEXT NOT NULL CHECK (length(trim(type)) > 0),
   title TEXT NOT NULL CHECK (length(trim(title)) > 0),
   body TEXT NOT NULL CHECK (length(trim(body)) > 0),
-  reference_type TEXT NOT NULL CHECK (length(trim(reference_type)) > 0),
-  reference_id INTEGER NOT NULL CHECK (reference_id > 0),
+  reference_type TEXT,
+  reference_id INTEGER,
   is_read INTEGER NOT NULL DEFAULT 0 CHECK (is_read IN (0, 1)),
   created_at TEXT NOT NULL,
   read_at TEXT,
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
-CREATE INDEX IF NOT EXISTS idx_notifications_user_created_at
-  ON notifications (user_id, created_at);
-
-CREATE INDEX IF NOT EXISTS idx_notifications_user_is_read
-  ON notifications (user_id, is_read);
+CREATE INDEX IF NOT EXISTS idx_notifications_user_is_read_created
+  ON notifications (user_id, is_read, created_at);

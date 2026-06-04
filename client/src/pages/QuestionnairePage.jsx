@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getMyQuestionnaire, upsertMyQuestionnaire } from "../lib/api/questionnaire";
 import Navbar from "../shared/components/Navbar";
 
@@ -102,50 +103,52 @@ const EMPTY_ANSWERS = Object.fromEntries(QUESTIONS.map((q) => [q.field, ""]));
 
 function QuestionnairePage() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [answers, setAnswers] = useState(EMPTY_ANSWERS);
-  const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState(false);
+  const [validationError, setValidationError] = useState("");
+  const [justSaved, setJustSaved] = useState(false);
+
+  const { data, isLoading } = useQuery({
+    queryKey: ["questionnaire"],
+    queryFn: () => getMyQuestionnaire().then((res) => res.data),
+    retry: false,
+  });
 
   useEffect(() => {
-    loadExisting();
-  }, []);
-
-  async function loadExisting() {
-    try {
-      const res = await getMyQuestionnaire();
-      setAnswers(res.data);
-    } catch (err) {
-      // 404 means no questionnaire yet — that's fine, leave form empty
+    if (data) {
+      setAnswers(data);
     }
-    setLoading(false);
-  }
+  }, [data]);
+
+  const upsertMutation = useMutation({
+    mutationFn: (payload) => upsertMyQuestionnaire(payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["questionnaire"] });
+      queryClient.invalidateQueries({ queryKey: ["profiles"] });
+      setJustSaved(true);
+    },
+  });
 
   function handleChange(field, value) {
     setAnswers((prev) => ({ ...prev, [field]: value }));
   }
 
-  async function handleSubmit(e) {
+  function handleSubmit(e) {
     e.preventDefault();
-    setError("");
-    setSuccess(false);
+    setValidationError("");
+    setJustSaved(false);
 
     const unanswered = QUESTIONS.filter((q) => !answers[q.field]);
     if (unanswered.length > 0) {
-      setError("Please answer all questions before submitting.");
+      setValidationError("Please answer all questions before submitting.");
       return;
     }
 
-    setSubmitting(true);
-    try {
-      await upsertMyQuestionnaire(answers);
-      setSuccess(true);
-    } catch (err) {
-      setError(err.message || "Could not save questionnaire. Please try again.");
-    }
-    setSubmitting(false);
+    upsertMutation.mutate(answers);
   }
+
+  const errMsg =
+    validationError || upsertMutation.error?.message || "";
 
   return (
     <>
@@ -159,9 +162,9 @@ function QuestionnairePage() {
             You can update your answers anytime.
           </p>
 
-          {loading && <p>Loading...</p>}
+          {isLoading && <p>Loading...</p>}
 
-          {!loading && (
+          {!isLoading && (
             <form onSubmit={handleSubmit}>
               {QUESTIONS.map((q) => (
                 <div className="form-field" key={q.field}>
@@ -181,16 +184,20 @@ function QuestionnairePage() {
                 </div>
               ))}
 
-              {error && <p className="form-error">{error}</p>}
-              {success && (
+              {errMsg && <p className="form-error">{errMsg}</p>}
+              {justSaved && (
                 <p style={{ color: "#16a34a", marginBottom: "1rem" }}>
                   Questionnaire saved! Compatibility scores have been updated.
                 </p>
               )}
 
               <div style={{ display: "flex", gap: "1rem", marginTop: "0.5rem" }}>
-                <button className="btn-primary" type="submit" disabled={submitting}>
-                  {submitting ? "Saving..." : "Save Answers"}
+                <button
+                  className="btn-primary"
+                  type="submit"
+                  disabled={upsertMutation.isPending}
+                >
+                  {upsertMutation.isPending ? "Saving..." : "Save Answers"}
                 </button>
                 <button
                   className="btn-secondary"

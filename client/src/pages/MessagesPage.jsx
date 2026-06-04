@@ -1,5 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useLocation } from "react-router-dom";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   getConversations,
   getConversationMessages,
@@ -13,84 +14,79 @@ const POLL_INTERVAL = 4000;
 
 function MessagesPage() {
   const location = useLocation();
-  const [conversations, setConversations] = useState([]);
-  const [activeId, setActiveId] = useState(location.state?.conversationId || null);
-  const [messages, setMessages] = useState([]);
+  const queryClient = useQueryClient();
+  const [activeId, setActiveId] = useState(
+    location.state?.conversationId || null
+  );
   const [draft, setDraft] = useState("");
-  const [error, setError] = useState("");
-  const [unreadTotal, setUnreadTotal] = useState(0);
+  const prevMessageCountRef = useRef(0);
+
+  const {
+    data: conversations = [],
+    error: convError,
+  } = useQuery({
+    queryKey: ["conversations"],
+    queryFn: () => getConversations().then((res) => res.data.items),
+    refetchInterval: POLL_INTERVAL,
+  });
+
+  const {
+    data: messages = [],
+    error: msgError,
+  } = useQuery({
+    queryKey: ["messages", activeId],
+    queryFn: () =>
+      getConversationMessages(activeId).then((res) => res.data.items),
+    refetchInterval: activeId ? POLL_INTERVAL : false,
+    enabled: !!activeId,
+  });
+
+  const { data: unreadTotal = 0 } = useQuery({
+    queryKey: ["unreadSummary"],
+    queryFn: () => getUnreadSummary().then((res) => res.data.unreadCount),
+    refetchInterval: POLL_INTERVAL,
+  });
+
+  const markReadMutation = useMutation({
+    mutationFn: ({ conversationId, lastReadMessageId }) =>
+      markConversationRead(conversationId, lastReadMessageId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["conversations"] });
+    },
+  });
 
   useEffect(() => {
-    loadConversations();
-  }, []);
-
-  useEffect(() => {
-    if (activeId) {
-      loadMessages(activeId);
+    if (!activeId || messages.length === 0) return;
+    if (messages.length !== prevMessageCountRef.current) {
+      prevMessageCountRef.current = messages.length;
+      const lastId = messages[messages.length - 1].id;
+      markReadMutation.mutate({
+        conversationId: activeId,
+        lastReadMessageId: lastId,
+      });
     }
-  }, [activeId]);
+  }, [activeId, messages, markReadMutation]);
 
-  useEffect(() => {
-    if (!activeId) return;
-    const timer = setInterval(() => {
-      const lastId = messages.length > 0 ? messages[messages.length - 1].id : undefined;
-      loadMessages(activeId, lastId);
-    }, POLL_INTERVAL);
-    return () => clearInterval(timer);
-  }, [activeId, messages]);
+  const sendMutation = useMutation({
+    mutationFn: (body) => sendMessage(activeId, body),
+    onSuccess: () => {
+      setDraft("");
+      queryClient.invalidateQueries({ queryKey: ["messages", activeId] });
+      queryClient.invalidateQueries({ queryKey: ["conversations"] });
+    },
+  });
 
-  useEffect(() => {
-    loadUnread();
-    const timer = setInterval(loadUnread, POLL_INTERVAL);
-    return () => clearInterval(timer);
-  }, []);
-
-  async function loadConversations() {
-    try {
-      const res = await getConversations();
-      setConversations(res.data.items);
-    } catch (err) {
-      setError(err.message || "Could not load conversations.");
-    }
-  }
-
-  async function loadMessages(conversationId, afterMessageId) {
-    try {
-      const res = await getConversationMessages(conversationId, afterMessageId);
-      const newItems = res.data.items;
-      if (newItems.length === 0) return;
-      setMessages((prev) => (afterMessageId ? [...prev, ...newItems] : newItems));
-      try {
-        await markConversationRead(conversationId, newItems[newItems.length - 1].id);
-        loadConversations();
-      } catch (markErr) {
-        console.error(markErr);
-      }
-    } catch (err) {
-      setError(err.message || "Could not load messages.");
-    }
-  }
-
-  async function loadUnread() {
-    try {
-      const res = await getUnreadSummary();
-      setUnreadTotal(res.data.unreadCount);
-    } catch (err) {
-      console.error(err);
-    }
-  }
-
-  async function handleSend(e) {
+  function handleSend(e) {
     e.preventDefault();
     if (!draft.trim() || !activeId) return;
-    try {
-      await sendMessage(activeId, draft.trim());
-      setDraft("");
-      loadMessages(activeId);
-    } catch (err) {
-      setError(err.message || "Could not send message.");
-    }
+    sendMutation.mutate(draft.trim());
   }
+
+  const error =
+    convError?.message ||
+    msgError?.message ||
+    sendMutation.error?.message ||
+    "";
 
   return (
     <>
@@ -98,12 +94,17 @@ function MessagesPage() {
       <main className="page-shell" style={{ paddingTop: "80px" }}>
         <section className="page-card">
           <p className="page-eyebrow">MESSAGES</p>
-          <h1>Messages{unreadTotal > 0 ? ` (${unreadTotal} unread)` : ""}</h1>
+          <h1>
+            Messages
+            {unreadTotal > 0 ? ` (${unreadTotal} unread)` : ""}
+          </h1>
           {error && <p className="form-error">{error}</p>}
 
           <div style={{ display: "flex", gap: "1.5rem", marginTop: "1rem" }}>
             <div style={{ width: "260px", flexShrink: 0 }}>
-              {conversations.length === 0 && <p style={{ color: "#666" }}>No conversations yet.</p>}
+              {conversations.length === 0 && (
+                <p style={{ color: "#666" }}>No conversations yet.</p>
+              )}
               {conversations.map((c) => (
                 <div
                   key={c.conversationId}
@@ -114,18 +115,39 @@ function MessagesPage() {
                     padding: "0.8rem",
                     marginBottom: "0.6rem",
                     cursor: "pointer",
-                    background: c.conversationId === activeId ? "#f1f5f9" : "white",
+                    background:
+                      c.conversationId === activeId ? "#f1f5f9" : "white",
                   }}
                 >
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                    }}
+                  >
                     <strong>{c.otherUser.displayName}</strong>
                     {c.unreadCount > 0 && (
-                      <span style={{ background: "#ef4444", color: "white", borderRadius: "999px", padding: "0 0.5rem", fontSize: "0.8rem" }}>
+                      <span
+                        style={{
+                          background: "#ef4444",
+                          color: "white",
+                          borderRadius: "999px",
+                          padding: "0 0.5rem",
+                          fontSize: "0.8rem",
+                        }}
+                      >
                         {c.unreadCount}
                       </span>
                     )}
                   </div>
-                  <p style={{ margin: "0.3rem 0 0", color: "#666", fontSize: "0.9rem" }}>
+                  <p
+                    style={{
+                      margin: "0.3rem 0 0",
+                      color: "#666",
+                      fontSize: "0.9rem",
+                    }}
+                  >
                     {c.lastMessagePreview}
                   </p>
                 </div>
@@ -133,20 +155,42 @@ function MessagesPage() {
             </div>
 
             <div style={{ flexGrow: 1 }}>
-              {!activeId && <p style={{ color: "#666" }}>Select a conversation to view messages.</p>}
+              {!activeId && (
+                <p style={{ color: "#666" }}>
+                  Select a conversation to view messages.
+                </p>
+              )}
               {activeId && (
                 <>
-                  <div style={{ border: "1px solid #e2e8f0", borderRadius: "8px", padding: "1rem", height: "400px", overflowY: "auto", marginBottom: "1rem" }}>
-                    {messages.length === 0 && <p style={{ color: "#666" }}>No messages yet. Say hi!</p>}
+                  <div
+                    style={{
+                      border: "1px solid #e2e8f0",
+                      borderRadius: "8px",
+                      padding: "1rem",
+                      height: "400px",
+                      overflowY: "auto",
+                      marginBottom: "1rem",
+                    }}
+                  >
+                    {messages.length === 0 && (
+                      <p style={{ color: "#666" }}>
+                        No messages yet. Say hi!
+                      </p>
+                    )}
                     {messages.map((m) => (
                       <div key={m.id} style={{ marginBottom: "0.8rem" }}>
                         <p style={{ margin: 0 }}>{m.body}</p>
-                        <small style={{ color: "#999" }}>{new Date(m.createdAt).toLocaleString()}</small>
+                        <small style={{ color: "#999" }}>
+                          {new Date(m.createdAt).toLocaleString()}
+                        </small>
                       </div>
                     ))}
                   </div>
 
-                  <form onSubmit={handleSend} style={{ display: "flex", gap: "0.5rem" }}>
+                  <form
+                    onSubmit={handleSend}
+                    style={{ display: "flex", gap: "0.5rem" }}
+                  >
                     <input
                       className="form-input"
                       type="text"
@@ -155,7 +199,13 @@ function MessagesPage() {
                       placeholder="Type a message..."
                       style={{ flexGrow: 1 }}
                     />
-                    <button className="btn-primary" type="submit">Send</button>
+                    <button
+                      className="btn-primary"
+                      type="submit"
+                      disabled={sendMutation.isPending}
+                    >
+                      {sendMutation.isPending ? "Sending..." : "Send"}
+                    </button>
                   </form>
                 </>
               )}

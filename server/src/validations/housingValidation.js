@@ -92,8 +92,49 @@ function requireHousingLinkPayload(body) {
   };
 }
 
+function normalizeHousingMapQuery(query = {}) {
+  if (!isPlainObject(query)) {
+    throw new ValidationError("Map query must be an object.");
+  }
+
+  const normalizedQuery = {};
+
+  addOptionalNonNegativeIntegerFilter(normalizedQuery, query, "budgetMin");
+  addOptionalNonNegativeIntegerFilter(normalizedQuery, query, "budgetMax");
+  addOptionalNonNegativeIntegerFilter(normalizedQuery, query, "bedrooms");
+
+  if (
+    hasQueryValue(query.minCompatibilityScore) &&
+    !isEmptyOptionalQueryValue(query.minCompatibilityScore)
+  ) {
+    normalizedQuery.minCompatibilityScore = requireNonNegativeInteger(
+      query.minCompatibilityScore,
+      "minCompatibilityScore"
+    );
+
+    if (normalizedQuery.minCompatibilityScore > 100) {
+      throw new ValidationError(
+        "minCompatibilityScore must be between 0 and 100."
+      );
+    }
+  }
+
+  if (
+    normalizedQuery.budgetMin !== undefined &&
+    normalizedQuery.budgetMax !== undefined &&
+    normalizedQuery.budgetMax < normalizedQuery.budgetMin
+  ) {
+    throw new ValidationError(
+      "budgetMax must be greater than or equal to budgetMin."
+    );
+  }
+
+  return normalizedQuery;
+}
+
 module.exports = {
   normalizeHousingSearchQuery,
+  normalizeHousingMapQuery,
   requireHousingLinkPayload,
   requirePositiveInteger,
 };

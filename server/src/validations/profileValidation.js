@@ -202,6 +202,20 @@ function normalizeProfileQuery(query = {}) {
     normalizedQuery.sortBy = sortBy;
   }
 
+  if (
+    hasQueryValue(query.hasLinkedHousing) &&
+    !isEmptyOptionalQueryValue(query.hasLinkedHousing)
+  ) {
+    const value = query.hasLinkedHousing;
+    if (value === true || value === "true" || value === 1 || value === "1") {
+      normalizedQuery.hasLinkedHousing = true;
+    } else if (value === false || value === "false" || value === 0 || value === "0") {
+      normalizedQuery.hasLinkedHousing = false;
+    } else {
+      throw new ValidationError("hasLinkedHousing must be true or false.");
+    }
+  }
+
   return normalizedQuery;
 }
 

@@ -1,6 +1,8 @@
 const express = require("express");
 const session = require("express-session");
 const cors = require("cors");
+const fs = require("fs");
+const path = require("path");
 const env = require("./config/env");
 const notFoundHandler = require("./middlewares/notFoundHandler");
 const errorHandler = require("./middlewares/errorHandler");
@@ -55,6 +57,11 @@ app.use("/api", questionnaireRoutes);
 app.use("/api/housing", housingRoutes);
 app.use("/api", favoriteRoutes);
 app.use("/api", notificationRoutes);
+
+const uploadsDir = path.join(__dirname, "..", "uploads", "avatars");
+fs.mkdirSync(uploadsDir, { recursive: true });
+
+app.use("/uploads", express.static(path.join(__dirname, "..", "uploads")));
 
 app.use(notFoundHandler);
 app.use(errorHandler);

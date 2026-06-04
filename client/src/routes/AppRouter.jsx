@@ -3,6 +3,7 @@ import BrowsePage from "../pages/BrowsePage";
 import HousingPage from "../pages/HousingPage";
 import FavoritesPage from "../pages/FavoritesPage";
 import LoginPage from "../pages/LoginPage";
+import MapPage from "../pages/MapPage";
 import MessagesPage from "../pages/MessagesPage";
 import ProfileDetailPage from "../pages/ProfileDetailPage";
 import ProfileSetupPage from "../pages/ProfileSetupPage";
@@ -20,6 +21,7 @@ function AppRouter() {
       <Route path="/browse" element={<ProtectedRoute><BrowsePage /></ProtectedRoute>} />
       <Route path="/questionnaire" element={<ProtectedRoute><QuestionnairePage /></ProtectedRoute>} />
       <Route path="/housing" element={<ProtectedRoute><HousingPage /></ProtectedRoute>} />
+      <Route path="/map" element={<ProtectedRoute><MapPage /></ProtectedRoute>} />
       <Route path="/profiles/:userId" element={<ProtectedRoute><ProfileDetailPage /></ProtectedRoute>} />
       <Route path="/messages" element={<ProtectedRoute><MessagesPage /></ProtectedRoute>} />
       <Route path="/favorites" element={<ProtectedRoute><FavoritesPage /></ProtectedRoute>} />

@@ -3,6 +3,7 @@ const NotFoundError = require("../errors/NotFoundError");
 const { nowISO } = require("../utils/time");
 const {
   normalizeHousingSearchQuery,
+  normalizeHousingMapQuery,
   requireHousingLinkPayload,
   requirePositiveInteger,
 } = require("../validations/housingValidation");
@@ -182,6 +183,36 @@ function unlinkMyHousing(currentUserId) {
   };
 }
 
+function toMapMarker(candidate) {
+  return {
+    userId: candidate.userId,
+    displayName: candidate.displayName,
+    compatibilityScore: candidate.compatibilityScore,
+    budgetMin: candidate.budgetMin,
+    budgetMax: candidate.budgetMax,
+    housing: {
+      housingUnitId: candidate.housingUnitId,
+      name: candidate.housingName,
+      addressLine: candidate.housingAddressLine,
+      monthlyRent: candidate.housingMonthlyRent,
+      bedrooms: candidate.housingBedrooms,
+      bathrooms: candidate.housingBathrooms,
+      lat: candidate.housingLat,
+      lng: candidate.housingLng,
+    },
+  };
+}
+
+function getHousingMapData(currentUserId, query) {
+  const userId = requirePositiveInteger(currentUserId, "currentUserId");
+  const filters = normalizeHousingMapQuery(query);
+  const candidates = housingRepository.listMapCandidates(userId, filters);
+
+  return {
+    items: candidates.map(toMapMarker),
+  };
+}
+
 module.exports = {
   importHousingCatalog,
   searchHousing,
@@ -189,4 +220,5 @@ module.exports = {
   getLinkedHousingForUser,
   linkMyHousing,
   unlinkMyHousing,
+  getHousingMapData,
 };

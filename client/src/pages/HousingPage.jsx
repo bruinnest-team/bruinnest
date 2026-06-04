@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   getMyLinkedHousing,
   linkMyHousing,
@@ -16,100 +17,84 @@ function getPhotoUrl(housing) {
 }
 
 function HousingPage() {
-  const [items, setItems] = useState([]);
-  const [linkedHousing, setLinkedHousing] = useState(null);
+  const queryClient = useQueryClient();
+
   const [q, setQ] = useState("");
   const [neighborhood, setNeighborhood] = useState("");
   const [budgetMin, setBudgetMin] = useState("");
   const [budgetMax, setBudgetMax] = useState("");
   const [bedrooms, setBedrooms] = useState("");
+
+  const [searchFilters, setSearchFilters] = useState({
+    q: "",
+    neighborhood: "",
+    budgetMin: "",
+    budgetMax: "",
+    bedrooms: "",
+  });
   const [page, setPage] = useState(1);
-  const [total, setTotal] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [linkingId, setLinkingId] = useState(null);
-  const [error, setError] = useState("");
-  const [notice, setNotice] = useState("");
 
-  useEffect(() => {
-    loadHousing();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page]);
+  const buildQuery = (filters, p) => {
+    const parts = [];
+    if (filters.q) parts.push("q=" + encodeURIComponent(filters.q));
+    if (filters.neighborhood) parts.push("neighborhood=" + encodeURIComponent(filters.neighborhood));
+    if (filters.budgetMin) parts.push("budgetMin=" + encodeURIComponent(filters.budgetMin));
+    if (filters.budgetMax) parts.push("budgetMax=" + encodeURIComponent(filters.budgetMax));
+    if (filters.bedrooms) parts.push("bedrooms=" + encodeURIComponent(filters.bedrooms));
+    parts.push("page=" + p);
+    parts.push("pageSize=" + PAGE_SIZE);
+    return "?" + parts.join("&");
+  };
 
-  useEffect(() => {
-    loadLinkedHousing();
-  }, []);
+  const {
+    data: housingData,
+    isLoading,
+    error,
+  } = useQuery({
+    queryKey: ["housing", searchFilters, page],
+    queryFn: () =>
+      searchHousing(buildQuery(searchFilters, page)).then((res) => res.data),
+    placeholderData: (prev) => prev,
+  });
 
-  async function loadHousing() {
-    setLoading(true);
-    setError("");
-    try {
-      const parts = [];
-      if (q) parts.push("q=" + encodeURIComponent(q));
-      if (neighborhood) parts.push("neighborhood=" + encodeURIComponent(neighborhood));
-      if (budgetMin) parts.push("budgetMin=" + encodeURIComponent(budgetMin));
-      if (budgetMax) parts.push("budgetMax=" + encodeURIComponent(budgetMax));
-      if (bedrooms) parts.push("bedrooms=" + encodeURIComponent(bedrooms));
-      parts.push("page=" + page);
-      parts.push("pageSize=" + PAGE_SIZE);
+  const items = housingData?.items ?? [];
+  const total = housingData?.total ?? 0;
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
-      const res = await searchHousing("?" + parts.join("&"));
-      setItems(res.data.items);
-      setTotal(res.data.total);
-    } catch (err) {
-      setError(err.message || "Could not load housing listings.");
-    }
-    setLoading(false);
-  }
+  const { data: linkedHousing = null } = useQuery({
+    queryKey: ["linkedHousing"],
+    queryFn: () => getMyLinkedHousing().then((res) => res.data),
+    retry: false,
+  });
 
-  async function loadLinkedHousing() {
-    try {
-      const res = await getMyLinkedHousing();
-      setLinkedHousing(res.data);
-    } catch (err) {
-      setLinkedHousing(null);
-    }
-  }
+  const linkMutation = useMutation({
+    mutationFn: (housingUnitId) => linkMyHousing(housingUnitId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["linkedHousing"] });
+      queryClient.invalidateQueries({ queryKey: ["housing"] });
+    },
+  });
+
+  const unlinkMutation = useMutation({
+    mutationFn: () => unlinkMyHousing(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["linkedHousing"] });
+      queryClient.invalidateQueries({ queryKey: ["housing"] });
+    },
+  });
 
   function handleSearch(e) {
     e.preventDefault();
-    setNotice("");
-
-    if (page === 1) {
-      loadHousing();
-    } else {
-      setPage(1);
-    }
+    const filters = { q, neighborhood, budgetMin, budgetMax, bedrooms };
+    setSearchFilters(filters);
+    setPage(1);
   }
 
-  async function handleLink(housingUnitId) {
-    setLinkingId(housingUnitId);
-    setError("");
-    setNotice("");
-    try {
-      await linkMyHousing(housingUnitId);
-      await loadLinkedHousing();
-      setNotice("Housing link updated.");
-    } catch (err) {
-      setError(err.message || "Could not link this housing unit.");
-    }
-    setLinkingId(null);
-  }
-
-  async function handleUnlink() {
-    setLinkingId("unlink");
-    setError("");
-    setNotice("");
-    try {
-      await unlinkMyHousing();
-      setLinkedHousing(null);
-      setNotice("Housing link removed.");
-    } catch (err) {
-      setError(err.message || "Could not remove housing link.");
-    }
-    setLinkingId(null);
-  }
-
-  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const errMsg =
+    error?.message ||
+    linkMutation.error?.message ||
+    unlinkMutation.error?.message ||
+    "";
 
   return (
     <>
@@ -132,11 +117,11 @@ function HousingPage() {
               <button
                 className="btn-secondary"
                 type="button"
-                onClick={handleUnlink}
-                disabled={linkingId === "unlink"}
+                onClick={() => unlinkMutation.mutate()}
+                disabled={unlinkMutation.isPending}
                 style={{ marginTop: "0.7rem" }}
               >
-                {linkingId === "unlink" ? "Removing..." : "Unlink"}
+                {unlinkMutation.isPending ? "Removing..." : "Unlink"}
               </button>
             </div>
           )}
@@ -202,10 +187,9 @@ function HousingPage() {
             <button className="btn-primary" type="submit">Search Housing</button>
           </form>
 
-          {error && <p className="form-error">{error}</p>}
-          {notice && <p style={{ color: "#047857", fontSize: "0.9rem" }}>{notice}</p>}
-          {loading && <p>Loading...</p>}
-          {!loading && items.length === 0 && !error && <p>No housing listings found.</p>}
+          {errMsg && <p className="form-error">{errMsg}</p>}
+          {isLoading && <p>Loading...</p>}
+          {!isLoading && items.length === 0 && !errMsg && <p>No housing listings found.</p>}
 
           <div style={{ display: "grid", gap: "1rem", marginTop: "1.2rem" }}>
             {items.map((housing) => {
@@ -236,8 +220,8 @@ function HousingPage() {
                       <button
                         className={isLinked ? "btn-secondary" : "btn-primary"}
                         type="button"
-                        onClick={() => handleLink(housing.housingUnitId)}
-                        disabled={isLinked || linkingId === housing.housingUnitId}
+                        onClick={() => linkMutation.mutate(housing.housingUnitId)}
+                        disabled={isLinked || linkMutation.isPending}
                         style={{ width: "auto", marginTop: 0 }}
                       >
                         {isLinked ? "Linked" : linkedHousing ? "Replace Link" : "Link to Profile"}
@@ -258,7 +242,7 @@ function HousingPage() {
             })}
           </div>
 
-          {!loading && !error && total > 0 && (
+          {!isLoading && !errMsg && total > 0 && (
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: "1.5rem" }}>
               <button
                 className="btn-primary"

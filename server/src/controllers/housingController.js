@@ -37,9 +37,22 @@ function unlinkMyHousing(req, res, next) {
   }
 }
 
+function getHousingMapData(req, res, next) {
+  try {
+    const data = housingService.getHousingMapData(
+      req.session.userId,
+      req.query
+    );
+    return success(res, data);
+  } catch (error) {
+    return next(error);
+  }
+}
+
 module.exports = {
   searchHousing,
   getMyLinkedHousing,
   linkMyHousing,
   unlinkMyHousing,
+  getHousingMapData,
 };

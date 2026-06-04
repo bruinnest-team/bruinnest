@@ -48,6 +48,7 @@ const listFavoritesStatement = db.prepare(`
     p.budget_min,
     p.budget_max,
     p.move_in_date,
+    p.avatar_url,
     f.created_at
   FROM favorites AS f
   JOIN profiles AS p
@@ -82,7 +83,8 @@ function mapFavoriteProfileRow(row) {
     budgetMin: row.budget_min,
     budgetMax: row.budget_max,
     moveInDate: row.move_in_date,
-    createdAt: row.created_at,
+    avatarUrl: row.avatar_url || null,
+    favoritedAt: row.created_at,
   };
 }
 

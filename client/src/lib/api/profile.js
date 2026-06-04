@@ -1,4 +1,4 @@
-import { apiRequest } from "./client";
+import { apiRequest, apiUpload } from "./client";
 
 export function getMyProfile() {
   return apiRequest("/profile/me");
@@ -16,6 +16,10 @@ export function updateMyProfile(data) {
     method: "PUT",
     body: JSON.stringify(data),
   });
+}
+
+export function uploadMyAvatar(formData) {
+  return apiUpload("/profile/me/avatar", formData);
 }
 
 export function getProfiles(params = "") {
