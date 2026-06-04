@@ -1,9 +1,6 @@
 const db = require("../config/db");
 
-const timestampExpression = "strftime('%Y-%m-%dT%H:%M:%fZ', 'now')";
-
-const findByIdStatement = db.prepare(`
-  SELECT
+const NOTIFICATION_COLUMNS = `
     id,
     user_id,
     type,
@@ -13,40 +10,25 @@ const findByIdStatement = db.prepare(`
     reference_id,
     is_read,
     created_at,
-    read_at
+    read_at`;
+
+const timestampExpression = "strftime('%Y-%m-%dT%H:%M:%fZ', 'now')";
+
+const findByIdStatement = db.prepare(`
+  SELECT${NOTIFICATION_COLUMNS}
   FROM notifications
   WHERE id = ?
 `);
 
 const findByIdForUserStatement = db.prepare(`
-  SELECT
-    id,
-    user_id,
-    type,
-    title,
-    body,
-    reference_type,
-    reference_id,
-    is_read,
-    created_at,
-    read_at
+  SELECT${NOTIFICATION_COLUMNS}
   FROM notifications
   WHERE id = ?
     AND user_id = ?
 `);
 
 const findExistingReferenceNotificationStatement = db.prepare(`
-  SELECT
-    id,
-    user_id,
-    type,
-    title,
-    body,
-    reference_type,
-    reference_id,
-    is_read,
-    created_at,
-    read_at
+  SELECT${NOTIFICATION_COLUMNS}
   FROM notifications
   WHERE user_id = @userId
     AND type = @type
@@ -81,17 +63,7 @@ const createNotificationStatement = db.prepare(`
 `);
 
 const listNotificationsStatement = db.prepare(`
-  SELECT
-    id,
-    user_id,
-    type,
-    title,
-    body,
-    reference_type,
-    reference_id,
-    is_read,
-    created_at,
-    read_at
+  SELECT${NOTIFICATION_COLUMNS}
   FROM notifications
   WHERE user_id = @userId
   ORDER BY created_at DESC, id DESC
@@ -99,17 +71,7 @@ const listNotificationsStatement = db.prepare(`
 `);
 
 const listUnreadNotificationsStatement = db.prepare(`
-  SELECT
-    id,
-    user_id,
-    type,
-    title,
-    body,
-    reference_type,
-    reference_id,
-    is_read,
-    created_at,
-    read_at
+  SELECT${NOTIFICATION_COLUMNS}
   FROM notifications
   WHERE user_id = @userId
     AND is_read = 0
