@@ -1,18 +1,11 @@
 const favoriteRepository = require("../repositories/favoriteRepository");
 const userRepository = require("../repositories/userRepository");
-const profileRepository = require("../repositories/profileRepository");
 const notificationService = require("./notificationService");
+const { getDisplayName } = require("./displayNameService");
 const NotFoundError = require("../errors/NotFoundError");
 const ValidationError = require("../errors/ValidationError");
 const ConflictError = require("../errors/ConflictError");
 const { requirePositiveInteger } = require("../validations/commonValidation");
-
-function getDisplayName(userId) {
-  const profile = profileRepository.findByUserId(userId);
-  const user = userRepository.findById(userId);
-
-  return profile?.displayName ?? user?.email ?? "Someone";
-}
 
 function addFavorite(currentUserId, targetUserId) {
   const userId = requirePositiveInteger(currentUserId, "currentUserId");
