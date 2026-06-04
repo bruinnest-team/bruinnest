@@ -1,43 +1,35 @@
-import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { listFavorites, removeFavorite } from "../lib/api/favorite";
 import Navbar from "../shared/components/Navbar";
 
 function FavoritesPage() {
-  const [favorites, setFavorites] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [busy, setBusy] = useState(null);
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    loadFavorites();
-  }, []);
+  const {
+    data: favorites = [],
+    isLoading,
+    error,
+  } = useQuery({
+    queryKey: ["favorites"],
+    queryFn: () => listFavorites().then((res) => res.data.items),
+  });
 
-  async function loadFavorites() {
-    setLoading(true);
-    setError("");
-    try {
-      const res = await listFavorites();
-      setFavorites(res.data.items);
-    } catch (err) {
-      setError(err.message || "Could not load favorites. Please try again.");
-    }
-    setLoading(false);
-  }
+  const removeMutation = useMutation({
+    mutationFn: (userId) => removeFavorite(userId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["favorites"] });
+    },
+  });
 
-  async function handleRemove(e, userId) {
+  function handleRemove(e, userId) {
     e.stopPropagation();
-    if (busy) return;
-    setBusy(userId);
-    try {
-      await removeFavorite(userId);
-      setFavorites((items) => items.filter((item) => item.userId !== userId));
-    } catch (err) {
-      alert(err.message || "Could not remove favorite.");
-    }
-    setBusy(null);
+    removeMutation.mutate(userId);
   }
+
+  const errMsg =
+    error?.message || removeMutation.error?.message || "";
 
   return (
     <>
@@ -47,9 +39,9 @@ function FavoritesPage() {
           <p className="page-eyebrow">FAVORITES</p>
           <h1>My Favorites</h1>
 
-          {loading && <p>Loading...</p>}
-          {error && <p className="form-error">{error}</p>}
-          {!loading && favorites.length === 0 && !error && (
+          {isLoading && <p>Loading...</p>}
+          {errMsg && <p className="form-error">{errMsg}</p>}
+          {!isLoading && favorites.length === 0 && !errMsg && (
             <p>You haven't favorited anyone yet. Browse profiles and tap the heart to save them here.</p>
           )}
 
@@ -64,7 +56,7 @@ function FavoritesPage() {
                 <button
                   type="button"
                   onClick={(e) => handleRemove(e, profile.userId)}
-                  disabled={busy === profile.userId}
+                  disabled={removeMutation.isPending && removeMutation.variables === profile.userId}
                   style={{ background: "#eff6ff", border: "1px solid #bfdbfe", color: "#1d4ed8", cursor: "pointer", fontSize: "0.8rem", fontWeight: 600, padding: "0.35rem 0.9rem", borderRadius: "999px" }}
                   aria-label="Remove favorite"
                 >

@@ -1,15 +1,30 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getProfiles } from "../lib/api/profile";
 import { addFavorite, removeFavorite, listFavorites } from "../lib/api/favorite";
 import Navbar from "../shared/components/Navbar";
 
 const PAGE_SIZE = 10;
 
+function buildQuery(filters, page) {
+  const parts = [];
+  if (filters.keyword) parts.push("keyword=" + encodeURIComponent(filters.keyword));
+  if (filters.gender) parts.push("gender=" + encodeURIComponent(filters.gender));
+  if (filters.graduationYear) parts.push("graduationYear=" + encodeURIComponent(filters.graduationYear));
+  if (filters.budgetMin) parts.push("budgetMin=" + encodeURIComponent(filters.budgetMin));
+  if (filters.budgetMax) parts.push("budgetMax=" + encodeURIComponent(filters.budgetMax));
+  if (filters.moveInDate) parts.push("moveInDate=" + encodeURIComponent(filters.moveInDate));
+  if (filters.sortBy) parts.push("sortBy=" + encodeURIComponent(filters.sortBy));
+  parts.push("page=" + page);
+  parts.push("pageSize=" + PAGE_SIZE);
+  return "?" + parts.join("&");
+}
+
 function BrowsePage() {
-  const [profiles, setProfiles] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+
   const [keyword, setKeyword] = useState("");
   const [gender, setGender] = useState("");
   const [graduationYear, setGraduationYear] = useState("");
@@ -17,87 +32,65 @@ function BrowsePage() {
   const [budgetMax, setBudgetMax] = useState("");
   const [moveInDate, setMoveInDate] = useState("");
   const [sortBy, setSortBy] = useState("latest");
+
+  const [searchFilters, setSearchFilters] = useState({
+    keyword: "",
+    gender: "",
+    graduationYear: "",
+    budgetMin: "",
+    budgetMax: "",
+    moveInDate: "",
+    sortBy: "latest",
+  });
   const [page, setPage] = useState(1);
-  const [total, setTotal] = useState(0);
-  const navigate = useNavigate();
-  const [favoriteIds, setFavoriteIds] = useState([]);
-  const [favBusy, setFavBusy] = useState(null);
 
-  async function toggleFavorite(e, userId) {
+  const {
+    data: profileData,
+    isLoading,
+    error,
+  } = useQuery({
+    queryKey: ["profiles", searchFilters, page],
+    queryFn: () =>
+      getProfiles(buildQuery(searchFilters, page)).then((res) => res.data),
+    placeholderData: (prev) => prev,
+  });
+
+  const profiles = profileData?.items ?? [];
+  const total = profileData?.total ?? 0;
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+
+  const { data: favoriteIds = [] } = useQuery({
+    queryKey: ["favorites"],
+    queryFn: () =>
+      listFavorites().then((res) => res.data.items.map((item) => item.userId)),
+  });
+
+  const favMutation = useMutation({
+    mutationFn: ({ userId, isFav }) =>
+      isFav ? removeFavorite(userId) : addFavorite(userId),
+    onMutate: ({ userId, isFav }) => {
+      queryClient.setQueryData(["favorites"], (old) =>
+        isFav ? old.filter((id) => id !== userId) : [...(old ?? []), userId]
+      );
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["favorites"] });
+      queryClient.invalidateQueries({ queryKey: ["profiles"] });
+    },
+  });
+
+  function toggleFavorite(e, userId) {
     e.stopPropagation();
-    if (favBusy) return;
-    setFavBusy(userId);
     const isFav = favoriteIds.includes(userId);
-    try {
-      if (isFav) {
-        await removeFavorite(userId);
-        setFavoriteIds((ids) => ids.filter((id) => id !== userId));
-      } else {
-        await addFavorite(userId);
-        setFavoriteIds((ids) => [...ids, userId]);
-      }
-    } catch (err) {
-      alert(err.message || "Could not update favorite.");
-    }
-    setFavBusy(null);
-  }
-
-  // Reload whenever the page changes (search resets to page 1 below).
-  useEffect(() => {
-    loadFavoriteIds();
-  }, []);
-
-  async function loadFavoriteIds() {
-    try {
-      const res = await listFavorites();
-      setFavoriteIds(res.data.items.map((item) => item.userId));
-    } catch (err) {
-      setFavoriteIds([]);
-    }
-  }
-
-  useEffect(() => {
-    loadProfiles();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page]);
-
-  async function loadProfiles() {
-    setLoading(true);
-    setError("");
-    try {
-      const parts = [];
-      if (keyword) parts.push("keyword=" + encodeURIComponent(keyword));
-      if (gender) parts.push("gender=" + encodeURIComponent(gender));
-      if (graduationYear) parts.push("graduationYear=" + encodeURIComponent(graduationYear));
-      if (budgetMin) parts.push("budgetMin=" + encodeURIComponent(budgetMin));
-      if (budgetMax) parts.push("budgetMax=" + encodeURIComponent(budgetMax));
-      if (moveInDate) parts.push("moveInDate=" + encodeURIComponent(moveInDate));
-      if (sortBy) parts.push("sortBy=" + encodeURIComponent(sortBy));
-      parts.push("page=" + page);
-      parts.push("pageSize=" + PAGE_SIZE);
-      const query = "?" + parts.join("&");
-
-      const res = await getProfiles(query);
-      setProfiles(res.data.items);
-      setTotal(res.data.total);
-    } catch (err) {
-      setError(err.message || "Could not load profiles. Please try again.");
-    }
-    setLoading(false);
+    favMutation.mutate({ userId, isFav });
   }
 
   function handleSearch(e) {
     e.preventDefault();
-    // A new search should always start from page 1.
-    // If already on page 1, reset state won't retrigger the effect, so load directly.
-    if (page === 1) {
-      loadProfiles();
-    } else {
-      setPage(1);
-    }
+    const filters = { keyword, gender, graduationYear, budgetMin, budgetMax, moveInDate, sortBy };
+    setSearchFilters(filters);
+    setPage(1);
   }
-
-  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   return (
     <>
@@ -183,9 +176,9 @@ function BrowsePage() {
             <button className="btn-primary" type="submit">Search</button>
           </form>
 
-          {loading && <p>Loading...</p>}
-          {error && <p className="form-error">{error}</p>}
-          {!loading && profiles.length === 0 && !error && <p>No profiles found.</p>}
+          {isLoading && <p>Loading...</p>}
+          {error && <p className="form-error">{error.message || "Could not load profiles."}</p>}
+          {!isLoading && profiles.length === 0 && !error && <p>No profiles found.</p>}
 
           {profiles.map((profile) => (
             <div
@@ -207,7 +200,7 @@ function BrowsePage() {
                 <button
                   type="button"
                   onClick={(e) => toggleFavorite(e, profile.userId)}
-                  disabled={favBusy === profile.userId}
+                  disabled={favMutation.isPending && favMutation.variables?.userId === profile.userId}
                   style={{ background: "none", border: "none", cursor: "pointer", fontSize: "1.4rem", lineHeight: 1, color: favoriteIds.includes(profile.userId) ? "#e0245e" : "#ccc" }}
                   aria-label="Toggle favorite"
                 >
@@ -225,7 +218,7 @@ function BrowsePage() {
             </div>
           ))}
 
-          {!loading && !error && total > 0 && (
+          {!isLoading && !error && total > 0 && (
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: "1.5rem" }}>
               <button
                 className="btn-primary"

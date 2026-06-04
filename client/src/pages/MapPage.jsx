@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { MapContainer, Marker, Popup, TileLayer } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -34,35 +35,31 @@ function getIcon(score) {
 }
 
 function MapPage() {
-  const [markers, setMarkers] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const mapRef = useRef(null);
+
   const [minScore, setMinScore] = useState("");
   const [budgetMin, setBudgetMin] = useState("");
   const [budgetMax, setBudgetMax] = useState("");
   const [bedrooms, setBedrooms] = useState("");
-  const mapRef = useRef(null);
 
-  const loadMarkers = useCallback(async (params) => {
-    setLoading(true);
-    setError("");
-    try {
-      const query = mapQueryFromState(params);
-      const res = await getHousingMapData(query);
-      setMarkers(res.data.items);
-    } catch (err) {
-      setError(err.message || "Could not load map data.");
-    }
-    setLoading(false);
-  }, []);
+  const [appliedFilters, setAppliedFilters] = useState({
+    minScore: "",
+    budgetMin: "",
+    budgetMax: "",
+    bedrooms: "",
+  });
 
-  useEffect(() => {
-    loadMarkers({ minScore, budgetMin, budgetMax, bedrooms });
-  }, [loadMarkers, minScore, budgetMin, budgetMax, bedrooms]);
+  const { data: markers = [], isLoading, error } = useQuery({
+    queryKey: ["mapMarkers", appliedFilters],
+    queryFn: () => {
+      const query = mapQueryFromState(appliedFilters);
+      return getHousingMapData(query).then((res) => res.data.items);
+    },
+  });
 
   function handleFilter(e) {
     e.preventDefault();
-    loadMarkers({ minScore, budgetMin, budgetMax, bedrooms });
+    setAppliedFilters({ minScore, budgetMin, budgetMax, bedrooms });
   }
 
   const bounds = markers.length > 0
@@ -130,14 +127,14 @@ function MapPage() {
             </button>
           </form>
 
-          {error && <p className="form-error">{error}</p>}
+          {error && <p className="form-error">{error.message || "Could not load map data."}</p>}
 
           <div className="map-container">
-            {loading && <p>Loading map data...</p>}
-            {!loading && markers.length === 0 && !error && (
+            {isLoading && <p>Loading map data...</p>}
+            {!isLoading && markers.length === 0 && !error && (
               <p>No compatible linked housing found matching your criteria.</p>
             )}
-            {!loading && markers.length > 0 && (
+            {!isLoading && markers.length > 0 && (
               <MapContainer
                 ref={mapRef}
                 center={MAP_DEFAULTS.center}

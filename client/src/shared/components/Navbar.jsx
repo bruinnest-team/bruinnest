@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "../context/AuthContext";
 import { getUnreadSummary } from "../../lib/api/messages";
 import NotificationBell from "./NotificationBell";
@@ -7,22 +7,13 @@ import NotificationBell from "./NotificationBell";
 function Navbar() {
   const { clearAuth } = useAuth();
   const navigate = useNavigate();
-  const [unreadCount, setUnreadCount] = useState(0);
 
-  useEffect(() => {
-    loadUnread();
-    const timer = setInterval(loadUnread, 5000);
-    return () => clearInterval(timer);
-  }, []);
-
-  async function loadUnread() {
-    try {
-      const res = await getUnreadSummary();
-      setUnreadCount(res.data.unreadCount);
-    } catch (err) {
-      setUnreadCount(0);
-    }
-  }
+  const { data: unreadCount = 0 } = useQuery({
+    queryKey: ["unreadSummary"],
+    queryFn: () => getUnreadSummary().then((res) => res.data.unreadCount),
+    refetchInterval: 5000,
+    staleTime: 0,
+  });
 
   async function handleLogout() {
     await clearAuth();
