@@ -1,8 +1,8 @@
 const conversationRepository = require("../repositories/conversationRepository");
 const messageRepository = require("../repositories/messageRepository");
 const userRepository = require("../repositories/userRepository");
-const profileRepository = require("../repositories/profileRepository");
 const notificationService = require("./notificationService");
+const { getDisplayName } = require("./displayNameService");
 const NotFoundError = require("../errors/NotFoundError");
 const ValidationError = require("../errors/ValidationError");
 const {
@@ -35,15 +35,8 @@ function findParticipantOrThrow(conversationId, userId) {
   return participant;
 }
 
-function getUserDisplayName(userId) {
-  const profile = profileRepository.findByUserId(userId);
-  const user = userRepository.findById(userId);
-
-  return profile?.displayName ?? user?.email ?? "Someone";
-}
-
 function createMessageNotifications({ conversationId, senderUserId, body }) {
-  const senderName = getUserDisplayName(senderUserId);
+  const senderName = getDisplayName(senderUserId);
   const preview = body.length > 120 ? `${body.slice(0, 117)}...` : body;
   const recipients = conversationRepository
     .listParticipants(conversationId)

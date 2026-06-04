@@ -1,21 +1,13 @@
 const questionnaireRepository = require("../repositories/questionnaireRepository");
 const compatibilityScoreRepository = require("../repositories/compatibilityScoreRepository");
-const profileRepository = require("../repositories/profileRepository");
-const userRepository = require("../repositories/userRepository");
 const notificationService = require("./notificationService");
+const { getDisplayName } = require("./displayNameService");
 const { calculateScore } = require("../utils/compatibility");
 const NotFoundError = require("../errors/NotFoundError");
 const { requirePositiveInteger } = require("../validations/commonValidation");
 const { requireQuestionnairePayload } = require("../validations/questionnaireValidation");
 
 const HIGH_MATCH_THRESHOLD = 80;
-
-function getDisplayName(userId) {
-  const profile = profileRepository.findByUserId(userId);
-  const user = userRepository.findById(userId);
-
-  return profile?.displayName ?? user?.email ?? "Someone";
-}
 
 function createHighMatchNotifications(userId, otherUserId, score) {
   if (score < HIGH_MATCH_THRESHOLD) {
