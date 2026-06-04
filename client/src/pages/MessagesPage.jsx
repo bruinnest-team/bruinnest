@@ -44,7 +44,6 @@ function MessagesPage() {
     queryKey: ["unreadSummary"],
     queryFn: () => getUnreadSummary().then((res) => res.data.unreadCount),
     refetchInterval: POLL_INTERVAL,
-    staleTime: 0,
   });
 
   const markReadMutation = useMutation({

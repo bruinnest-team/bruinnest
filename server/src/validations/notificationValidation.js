@@ -71,23 +71,25 @@ function requireNotificationPayload(payload) {
   }
 
   const userId = requirePositiveInteger(payload.userId, "userId");
-  const referenceId = requirePositiveInteger(
-    payload.referenceId,
-    "referenceId"
-  );
   const type = requireNonEmptyString(payload.type, "Notification type is invalid.");
-  const referenceType = requireNonEmptyString(
-    payload.referenceType,
-    "Notification reference type is invalid."
-  );
   const title = requireNonEmptyString(payload.title, "title is required.");
   const body = requireNonEmptyString(payload.body, "body is required.");
+
+  const referenceType =
+    payload.referenceType === undefined || payload.referenceType === null
+      ? null
+      : requireNonEmptyString(payload.referenceType, "Notification reference type is invalid.");
+
+  const referenceId =
+    payload.referenceId === undefined || payload.referenceId === null
+      ? null
+      : requirePositiveInteger(payload.referenceId, "referenceId");
 
   if (!ALLOWED_TYPES.has(type)) {
     throw new ValidationError("Notification type is invalid.");
   }
 
-  if (!ALLOWED_REFERENCE_TYPES.has(referenceType)) {
+  if (referenceType !== null && !ALLOWED_REFERENCE_TYPES.has(referenceType)) {
     throw new ValidationError("Notification reference type is invalid.");
   }
 

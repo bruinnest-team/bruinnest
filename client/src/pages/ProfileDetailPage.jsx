@@ -2,7 +2,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getProfileById } from "../lib/api/profile";
 import { createOrGetConversation } from "../lib/api/messages";
-import { addFavorite, removeFavorite } from "../lib/api/favorite";
+import { addFavorite, removeFavorite } from "../lib/api/favorites";
 import Navbar from "../shared/components/Navbar";
 
 function ProfileDetailPage() {

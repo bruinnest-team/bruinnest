@@ -12,7 +12,6 @@ function Navbar() {
     queryKey: ["unreadSummary"],
     queryFn: () => getUnreadSummary().then((res) => res.data.unreadCount),
     refetchInterval: 5000,
-    staleTime: 0,
   });
 
   async function handleLogout() {

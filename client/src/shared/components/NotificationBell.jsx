@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   getNotifications,
@@ -8,6 +9,7 @@ import {
 
 function NotificationBell() {
   const [open, setOpen] = useState(false);
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
 
   const { data, isLoading, isError } = useQuery({
@@ -33,6 +35,18 @@ function NotificationBell() {
       queryClient.invalidateQueries({ queryKey: ["notifications"] });
     },
   });
+
+  function handleNotificationClick(item) {
+    if (!item.isRead) {
+      markOneMutation.mutate(item.id);
+    }
+    setOpen(false);
+    if (item.referenceType === "conversation") {
+      navigate("/messages", { state: { conversationId: item.referenceId } });
+    } else if (item.referenceType === "profile") {
+      navigate(`/profiles/${item.referenceId}`);
+    }
+  }
 
   return (
     <div style={{ position: "relative" }}>
@@ -129,10 +143,12 @@ function NotificationBell() {
               items.map((item) => (
                 <div
                   key={item.id}
+                  onClick={() => handleNotificationClick(item)}
                   style={{
                     padding: "0.7rem 0.9rem",
                     borderBottom: "1px solid #f1f5f9",
                     background: item.isRead ? "#ffffff" : "#eff6ff",
+                    cursor: "pointer",
                   }}
                 >
                   <div style={{

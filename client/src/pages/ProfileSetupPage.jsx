@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -27,26 +27,26 @@ function ProfileSetupPage() {
   const [avatarError, setAvatarError] = useState("");
   const [avatarUploading, setAvatarUploading] = useState(false);
 
-  const { isLoading, isError } = useQuery({
+  const { data, isLoading, isError } = useQuery({
     queryKey: ["myProfile"],
     queryFn: () => getMyProfile().then((res) => res.data),
-    onSuccess: (data) => {
-      if (data) {
-        setForm({
-          displayName: data.displayName || "",
-          gender: data.gender || "",
-          graduationYear: data.graduationYear || "",
-          budgetMin: data.budgetMin || "",
-          budgetMax: data.budgetMax || "",
-          moveInDate: data.moveInDate || "",
-          bio: data.bio || "",
-          avatarUrl: data.avatarUrl || null,
-        });
-      }
-    },
     retry: false,
-    staleTime: 0,
   });
+
+  useEffect(() => {
+    if (data) {
+      setForm({
+        displayName: data.displayName || "",
+        gender: data.gender || "",
+        graduationYear: data.graduationYear || "",
+        budgetMin: data.budgetMin || "",
+        budgetMax: data.budgetMax || "",
+        moveInDate: data.moveInDate || "",
+        bio: data.bio || "",
+        avatarUrl: data.avatarUrl || null,
+      });
+    }
+  }, [data]);
 
   const isEditing = !isLoading && !isError;
 
@@ -114,29 +114,31 @@ function ProfileSetupPage() {
         <p className="page-eyebrow">Profile</p>
         <h1>{isEditing ? "Edit Profile" : "Profile Setup"}</h1>
 
-        <div className="avatar-section">
-          {form.avatarUrl && (
-            <img
-              src={form.avatarUrl}
-              alt="Avatar preview"
-              className="avatar-preview"
-            />
-          )}
-          <div className="avatar-upload">
-            <label htmlFor="avatar-input" className="btn-secondary">
-              {avatarUploading ? "Uploading..." : "Upload Photo"}
-            </label>
-            <input
-              id="avatar-input"
-              type="file"
-              accept="image/jpeg,image/png,image/gif,image/webp"
-              onChange={handleAvatarChange}
-              disabled={avatarUploading}
-              hidden
-            />
+        {isEditing && (
+          <div className="avatar-section">
+            {form.avatarUrl && (
+              <img
+                src={form.avatarUrl}
+                alt="Avatar preview"
+                className="avatar-preview"
+              />
+            )}
+            <div className="avatar-upload">
+              <label htmlFor="avatar-input" className="btn-secondary">
+                {avatarUploading ? "Uploading..." : "Upload Photo"}
+              </label>
+              <input
+                id="avatar-input"
+                type="file"
+                accept="image/jpeg,image/png,image/gif,image/webp"
+                onChange={handleAvatarChange}
+                disabled={avatarUploading}
+                hidden
+              />
+            </div>
+            {avatarError && <p className="form-error">{avatarError}</p>}
           </div>
-          {avatarError && <p className="form-error">{avatarError}</p>}
-        </div>
+        )}
 
         {isLoading && <p>Loading profile...</p>}
 

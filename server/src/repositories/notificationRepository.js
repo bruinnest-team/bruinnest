@@ -50,8 +50,8 @@ const findExistingReferenceNotificationStatement = db.prepare(`
   FROM notifications
   WHERE user_id = @userId
     AND type = @type
-    AND reference_type = @referenceType
-    AND reference_id = @referenceId
+    AND (reference_type = @referenceType OR (reference_type IS NULL AND @referenceType IS NULL))
+    AND (reference_id = @referenceId OR (reference_id IS NULL AND @referenceId IS NULL))
   ORDER BY created_at DESC, id DESC
   LIMIT 1
 `);

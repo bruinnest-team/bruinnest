@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getProfiles } from "../lib/api/profile";
-import { addFavorite, removeFavorite, listFavorites } from "../lib/api/favorite";
+import { addFavorite, removeFavorite } from "../lib/api/favorites";
 import Navbar from "../shared/components/Navbar";
 
 const PAGE_SIZE = 10;
@@ -59,30 +59,32 @@ function BrowsePage() {
   const total = profileData?.total ?? 0;
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
-  const { data: favoriteIds = [] } = useQuery({
-    queryKey: ["favorites"],
-    queryFn: () =>
-      listFavorites().then((res) => res.data.items.map((item) => item.userId)),
-  });
-
   const favMutation = useMutation({
     mutationFn: ({ userId, isFav }) =>
       isFav ? removeFavorite(userId) : addFavorite(userId),
     onMutate: ({ userId, isFav }) => {
-      queryClient.setQueryData(["favorites"], (old) =>
-        isFav ? old.filter((id) => id !== userId) : [...(old ?? []), userId]
+      queryClient.setQueryData(
+        ["profiles", searchFilters, page],
+        (old) =>
+          old
+            ? {
+                ...old,
+                items: old.items.map((p) =>
+                  p.userId === userId ? { ...p, isFavorited: !isFav } : p
+                ),
+              }
+            : old
       );
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["favorites"] });
       queryClient.invalidateQueries({ queryKey: ["profiles"] });
+      queryClient.invalidateQueries({ queryKey: ["favorites"] });
     },
   });
 
-  function toggleFavorite(e, userId) {
+  function toggleFavorite(e, profile) {
     e.stopPropagation();
-    const isFav = favoriteIds.includes(userId);
-    favMutation.mutate({ userId, isFav });
+    favMutation.mutate({ userId: profile.userId, isFav: profile.isFavorited });
   }
 
   function handleSearch(e) {
@@ -199,12 +201,12 @@ function BrowsePage() {
                 <h3 style={{ margin: 0, flex: 1 }}>{profile.displayName}</h3>
                 <button
                   type="button"
-                  onClick={(e) => toggleFavorite(e, profile.userId)}
+                  onClick={(e) => toggleFavorite(e, profile)}
                   disabled={favMutation.isPending && favMutation.variables?.userId === profile.userId}
-                  style={{ background: "none", border: "none", cursor: "pointer", fontSize: "1.4rem", lineHeight: 1, color: favoriteIds.includes(profile.userId) ? "#e0245e" : "#ccc" }}
+                  style={{ background: "none", border: "none", cursor: "pointer", fontSize: "1.4rem", lineHeight: 1, color: profile.isFavorited ? "#e0245e" : "#ccc" }}
                   aria-label="Toggle favorite"
                 >
-                  {favoriteIds.includes(profile.userId) ? "♥" : "♡"}
+                  {profile.isFavorited ? "♥" : "♡"}
                 </button>
               </div>
               <p style={{ margin: "0 0 0.3rem", color: "#666" }}>{profile.gender} · Class of {profile.graduationYear}</p>

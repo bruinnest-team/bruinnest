@@ -65,7 +65,11 @@ const findPublicProfileByUserIdStatement = db.prepare(`
     (
       SELECT score_percent FROM compatibility_scores
       WHERE user_id = @currentUserId AND other_user_id = profiles.user_id
-    ) AS compatibility_score
+    ) AS compatibility_score,
+    EXISTS(
+      SELECT 1 FROM favorites
+      WHERE user_id = @currentUserId AND target_user_id = profiles.user_id
+    ) AS is_favorited
   FROM profiles
   WHERE user_id = @userId
     AND profile_completed = 1
@@ -88,6 +92,8 @@ function mapProfileRow(row) {
     avatarUrl: row.avatar_url || null,
     profileCompleted: row.profile_completed === 1,
     compatibilityScore: row.compatibility_score ?? null,
+    hasLinkedHousing: row.has_linked_housing === 1,
+    isFavorited: row.is_favorited === 1,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -101,6 +107,7 @@ function buildSearchFilters({
   budgetMax,
   moveInDate,
   keyword,
+  hasLinkedHousing,
 }) {
   const conditions = ["profile_completed = 1"];
   const params = {};
@@ -138,6 +145,14 @@ function buildSearchFilters({
   if (keyword) {
     conditions.push("(display_name LIKE @keyword OR bio LIKE @keyword)");
     params.keyword = `%${keyword}%`;
+  }
+
+  if (hasLinkedHousing !== undefined && hasLinkedHousing !== null) {
+    if (hasLinkedHousing) {
+      conditions.push("EXISTS (SELECT 1 FROM user_housing_links WHERE user_id = profiles.user_id)");
+    } else {
+      conditions.push("NOT EXISTS (SELECT 1 FROM user_housing_links WHERE user_id = profiles.user_id)");
+    }
   }
 
   return {
@@ -230,6 +245,7 @@ function searchProfiles({
   moveInDate,
   keyword,
   sortBy = "latest",
+  hasLinkedHousing,
 }) {
   const safePage = Math.max(1, Number(page) || 1);
   const safePageSize = Math.max(1, Number(pageSize) || 10);
@@ -243,6 +259,7 @@ function searchProfiles({
     budgetMax,
     moveInDate,
     keyword,
+    hasLinkedHousing,
   });
 
   const orderByClause =
@@ -267,7 +284,15 @@ function searchProfiles({
       (
         SELECT score_percent FROM compatibility_scores
         WHERE user_id = @currentUserId AND other_user_id = profiles.user_id
-      ) AS compatibility_score
+      ) AS compatibility_score,
+      EXISTS(
+        SELECT 1 FROM user_housing_links
+        WHERE user_id = profiles.user_id
+      ) AS has_linked_housing,
+      EXISTS(
+        SELECT 1 FROM favorites
+        WHERE user_id = @currentUserId AND target_user_id = profiles.user_id
+      ) AS is_favorited
     FROM profiles
     ${whereClause}
     ORDER BY ${orderByClause}

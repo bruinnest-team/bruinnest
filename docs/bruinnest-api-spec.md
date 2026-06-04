@@ -449,12 +449,22 @@ Success response:
     "isFavorited": true,
     "linkedHousing": {
       "housingUnitId": 12,
+      "externalId": "5XkJC3-1bd",
       "name": "Westwood Village Apartments - 1 Bed",
       "addressLine": "1033 Hilgard Ave #406",
+      "city": "Los Angeles",
+      "state": "CA",
+      "zip": "90024",
+      "neighborhood": "Westwood",
       "monthlyRent": 3415,
       "bedrooms": 1,
       "bathrooms": 1,
-      "photoUrl": "https://photos.zillowstatic.com/fp/cbf9592240656b16a2909d5c926e0221-p_e.jpg"
+      "lat": 34.0615,
+      "lng": -118.4412,
+      "photoUrls": [
+        "https://photos.zillowstatic.com/fp/cbf9592240656b16a2909d5c926e0221-p_e.jpg"
+      ],
+      "listingUrl": "https://www.zillow.com/apartments/los-angeles-ca/westwood-village-apartments/5XkJC3/"
     },
     "canMessage": true
   }

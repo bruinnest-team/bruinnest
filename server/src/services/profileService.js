@@ -37,6 +37,8 @@ function toProfileSummary(profile) {
     bioPreview: profile.bio.slice(0, 120),
     avatarUrl: profile.avatarUrl || null,
     compatibilityScore: profile.compatibilityScore,
+    hasLinkedHousing: profile.hasLinkedHousing ?? false,
+    isFavorited: profile.isFavorited ?? false,
   };
 }
 
@@ -53,6 +55,7 @@ function toProfileDetail(profile, currentUserId) {
     avatarUrl: profile.avatarUrl || null,
     linkedHousing: housingService.getLinkedHousingForUser(profile.userId),
     compatibilityScore: profile.compatibilityScore,
+    isFavorited: profile.isFavorited ?? false,
     canMessage: currentUserId !== profile.userId,
   };
 }

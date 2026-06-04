@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { listFavorites, removeFavorite } from "../lib/api/favorite";
+import { listFavorites, removeFavorite } from "../lib/api/favorites";
 import Navbar from "../shared/components/Navbar";
 
 function FavoritesPage() {

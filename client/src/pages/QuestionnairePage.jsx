@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getMyQuestionnaire, upsertMyQuestionnaire } from "../lib/api/questionnaire";
@@ -108,14 +108,17 @@ function QuestionnairePage() {
   const [validationError, setValidationError] = useState("");
   const [justSaved, setJustSaved] = useState(false);
 
-  const { isLoading } = useQuery({
+  const { data, isLoading } = useQuery({
     queryKey: ["questionnaire"],
     queryFn: () => getMyQuestionnaire().then((res) => res.data),
-    onSuccess: (data) => setAnswers(data),
-    // 404 means no questionnaire yet — leave form empty
-    onError: () => {},
-    staleTime: 0,
+    retry: false,
   });
+
+  useEffect(() => {
+    if (data) {
+      setAnswers(data);
+    }
+  }, [data]);
 
   const upsertMutation = useMutation({
     mutationFn: (payload) => upsertMyQuestionnaire(payload),
