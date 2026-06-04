@@ -1,12 +1,14 @@
 const userRepository = require('../repositories/userRepository');
 const emailVerificationRepository = require('../repositories/emailVerificationRepository');
 const profileRepository = require('../repositories/profileRepository');
+const { sendVerificationCodeEmail } = require('./emailService');
 const { hashPassword, verifyPassword } = require('../utils/password');
 const { nowISO, addSeconds, isExpired } = require('../utils/time');
 const { validateEmail, validatePassword } = require('../validations/authValidation');
 const AuthError = require('../errors/AuthError');
 const ValidationError = require('../errors/ValidationError');
 const ConflictError = require('../errors/ConflictError');
+const MailDeliveryError = require('../errors/MailDeliveryError');
 const bcrypt = require('bcrypt');
 
 async function sendVerificationCode({ email, password }) {
@@ -35,15 +37,19 @@ async function sendVerificationCode({ email, password }) {
   const now = nowISO();
   const expiresAt = addSeconds(now, 600);
 
-  emailVerificationRepository.createVerification({
+  const verification = emailVerificationRepository.createVerification({
     email: normalizedEmail,
     codeHash,
     expiresAt,
     sentAt: now,
   });
 
-  // Later we should send email here. For MVP, log to console.
-  console.log(`Verification code for ${normalizedEmail}: ${code}`);
+  try {
+    await sendVerificationCodeEmail({ to: normalizedEmail, code });
+  } catch {
+    emailVerificationRepository.deleteById(verification.id);
+    throw new MailDeliveryError();
+  }
 
   return { message: 'Verification code sent' };
 }
