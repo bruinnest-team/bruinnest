@@ -20,60 +20,32 @@ function Navbar() {
   }
 
   return (
-    <nav style={{
-      position: "fixed",
-      top: 0,
-      left: 0,
-      right: 0,
-      height: "56px",
-      background: "#ffffff",
-      borderBottom: "1px solid #e2e8f0",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "space-between",
-      padding: "0 2rem",
-      zIndex: 100,
-    }}>
-      <Link to="/browse" style={{ fontWeight: "700", fontSize: "1.1rem", color: "#1e3a5f", textDecoration: "none" }}>
+    <nav className="app-navbar">
+      <Link to="/browse" className="app-navbar-brand">
         BruinNest
       </Link>
 
-      <div style={{ display: "flex", alignItems: "center", gap: "1.5rem" }}>
-        <Link
-          to="/housing"
-          style={{ color: "#1e3a5f", textDecoration: "none", fontSize: "0.95rem" }}
-        >
+      <div className="app-navbar-links">
+        <Link to="/housing" className="app-navbar-link">
           Housing
         </Link>
 
-        <Link
-          to="/questionnaire"
-          style={{ color: "#1e3a5f", textDecoration: "none", fontSize: "0.95rem" }}
-        >
+        <Link to="/questionnaire" className="app-navbar-link">
           Questionnaire
         </Link>
 
-        <Link
-          to="/favorites"
-          style={{ color: "#1e3a5f", textDecoration: "none", fontSize: "0.95rem" }}
-        >
+        <Link to="/favorites" className="app-navbar-link">
           Favorites
         </Link>
 
-        <Link
-          to="/map"
-          style={{ color: "#1e3a5f", textDecoration: "none", fontSize: "0.95rem" }}
-        >
+        <Link to="/map" className="app-navbar-link">
           Map
         </Link>
 
-        <Link
-          to="/messages"
-          style={{ color: "#1e3a5f", textDecoration: "none", fontSize: "0.95rem", display: "flex", alignItems: "center", gap: "0.4rem" }}
-        >
+        <Link to="/messages" className="app-navbar-link app-navbar-message">
           Messages
           {unreadCount > 0 && (
-            <span style={{ background: "#ef4444", color: "white", borderRadius: "999px", padding: "0 0.5rem", fontSize: "0.75rem" }}>
+            <span className="app-navbar-badge">
               {unreadCount}
             </span>
           )}
@@ -83,15 +55,7 @@ function Navbar() {
 
         <button
           onClick={handleLogout}
-          style={{
-            background: "none",
-            border: "1px solid #1e3a5f",
-            color: "#1e3a5f",
-            padding: "0.4rem 1rem",
-            borderRadius: "6px",
-            cursor: "pointer",
-            fontSize: "0.9rem",
-          }}
+          className="app-navbar-logout"
         >
           Logout
         </button>

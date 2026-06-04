@@ -62,6 +62,7 @@ const listConversationsForUserStatement = db.prepare(`
     c.updated_at,
     other_cp.user_id AS other_user_id,
     other_profile.display_name AS other_user_display_name,
+    other_profile.avatar_url AS other_user_avatar_url,
     latest_message.body AS last_message_preview,
     latest_message.created_at AS last_message_at,
     (
@@ -156,6 +157,7 @@ function mapConversationListRow(row) {
     otherUser: {
       userId: row.other_user_id,
       displayName: row.other_user_display_name,
+      avatarUrl: row.other_user_avatar_url || null,
     },
     lastMessagePreview: row.last_message_preview,
     lastMessageAt: row.last_message_at,
