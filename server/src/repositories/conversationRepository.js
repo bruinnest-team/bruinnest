@@ -102,6 +102,16 @@ const findParticipantStatement = db.prepare(`
     AND user_id = ?
 `);
 
+const listParticipantsStatement = db.prepare(`
+  SELECT
+    conversation_id,
+    user_id,
+    last_read_message_id,
+    joined_at
+  FROM conversation_participants
+  WHERE conversation_id = ?
+`);
+
 const updateLastReadMessageStatement = db.prepare(`
   UPDATE conversation_participants
   SET last_read_message_id = @lastReadMessageId
@@ -193,6 +203,10 @@ function findParticipant(conversationId, userId) {
   return mapParticipantRow(findParticipantStatement.get(conversationId, userId));
 }
 
+function listParticipants(conversationId) {
+  return listParticipantsStatement.all(conversationId).map(mapParticipantRow);
+}
+
 function updateLastReadMessage({ conversationId, userId, lastReadMessageId }) {
   updateLastReadMessageStatement.run({
     conversationId,
@@ -218,6 +232,7 @@ module.exports = {
   addParticipant,
   listConversationsForUser,
   findParticipant,
+  listParticipants,
   updateLastReadMessage,
   touchConversation,
 };

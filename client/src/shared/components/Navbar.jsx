@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { getUnreadSummary } from "../../lib/api/messages";
+import NotificationBell from "./NotificationBell";
 
 function Navbar() {
   const { clearAuth } = useAuth();
@@ -80,6 +81,8 @@ function Navbar() {
             </span>
           )}
         </Link>
+
+        <NotificationBell />
 
         <button
           onClick={handleLogout}

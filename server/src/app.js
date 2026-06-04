@@ -13,6 +13,7 @@ const profileRoutes = require("./routes/profileRoutes");
 const housingRoutes = require("./routes/housingRoutes");
 const questionnaireRoutes = require("./routes/questionnaireRoutes");
 const favoriteRoutes = require("./routes/favoriteRoutes");
+const notificationRoutes = require("./routes/notificationRoutes");
 
 const app = express();
 
@@ -53,6 +54,7 @@ app.use("/api", profileRoutes);
 app.use("/api", questionnaireRoutes);
 app.use("/api/housing", housingRoutes);
 app.use("/api", favoriteRoutes);
+app.use("/api", notificationRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler);

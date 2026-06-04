@@ -1,9 +1,48 @@
 const questionnaireRepository = require("../repositories/questionnaireRepository");
 const compatibilityScoreRepository = require("../repositories/compatibilityScoreRepository");
+const profileRepository = require("../repositories/profileRepository");
+const userRepository = require("../repositories/userRepository");
+const notificationService = require("./notificationService");
 const { calculateScore } = require("../utils/compatibility");
 const NotFoundError = require("../errors/NotFoundError");
 const { requirePositiveInteger } = require("../validations/commonValidation");
 const { requireQuestionnairePayload } = require("../validations/questionnaireValidation");
+
+const HIGH_MATCH_THRESHOLD = 80;
+
+function getDisplayName(userId) {
+  const profile = profileRepository.findByUserId(userId);
+  const user = userRepository.findById(userId);
+
+  return profile?.displayName ?? user?.email ?? "Someone";
+}
+
+function createHighMatchNotifications(userId, otherUserId, score) {
+  if (score < HIGH_MATCH_THRESHOLD) {
+    return;
+  }
+
+  const userName = getDisplayName(userId);
+  const otherName = getDisplayName(otherUserId);
+
+  notificationService.createReferenceNotificationOnce({
+    userId: otherUserId,
+    type: "high_match",
+    title: "New high-match roommate",
+    body: `${userName} is a ${score}% compatibility match.`,
+    referenceType: "profile",
+    referenceId: userId,
+  });
+
+  notificationService.createReferenceNotificationOnce({
+    userId,
+    type: "high_match",
+    title: "New high-match roommate",
+    body: `${otherName} is a ${score}% compatibility match.`,
+    referenceType: "profile",
+    referenceId: otherUserId,
+  });
+}
 
 function toQuestionnaireResponse(q) {
   return {
@@ -45,6 +84,7 @@ function upsertQuestionnaire(currentUserId, body) {
     const score = calculateScore(updated, otherQ);
     compatibilityScoreRepository.upsertScore(userId, otherId, score);
     compatibilityScoreRepository.upsertScore(otherId, userId, score);
+    createHighMatchNotifications(userId, otherId, score);
     recalculatedUsers++;
   }
 
