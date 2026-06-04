@@ -13,6 +13,9 @@ const ALLOWED_TYPES = new Set([
 
 const ALLOWED_REFERENCE_TYPES = new Set(["conversation", "profile"]);
 
+const TRUTHY_UNREAD_ONLY_VALUES = new Set([true, "true", "1", 1]);
+const FALSY_UNREAD_ONLY_VALUES = new Set([false, "false", "0", 0]);
+
 function optionalPositiveInteger(value, fieldName, defaultValue) {
   if (value === undefined || value === null || value === "") {
     return defaultValue;
@@ -28,21 +31,11 @@ function normalizeUnreadOnly(value) {
 
   const normalizedValue = typeof value === "string" ? value.trim() : value;
 
-  if (
-    normalizedValue === true ||
-    normalizedValue === "true" ||
-    normalizedValue === "1" ||
-    normalizedValue === 1
-  ) {
+  if (TRUTHY_UNREAD_ONLY_VALUES.has(normalizedValue)) {
     return true;
   }
 
-  if (
-    normalizedValue === false ||
-    normalizedValue === "false" ||
-    normalizedValue === "0" ||
-    normalizedValue === 0
-  ) {
+  if (FALSY_UNREAD_ONLY_VALUES.has(normalizedValue)) {
     return false;
   }
 
