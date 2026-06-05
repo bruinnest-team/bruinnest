@@ -542,6 +542,10 @@ p {
   margin-bottom: 0.85rem;
 }
 
+.message-row.is-theirs {
+  align-items: flex-start;
+}
+
 .message-row.is-mine {
   justify-content: flex-end;
 }
