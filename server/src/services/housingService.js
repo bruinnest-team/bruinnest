@@ -183,33 +183,123 @@ function unlinkMyHousing(currentUserId) {
   };
 }
 
-function toMapMarker(candidate) {
+function toMapHousing(candidate) {
+  return {
+    housingUnitId: candidate.housingUnitId,
+    name: candidate.housingName,
+    addressLine: candidate.housingAddressLine,
+    city: candidate.housingCity,
+    monthlyRent: candidate.housingMonthlyRent,
+    bedrooms: candidate.housingBedrooms,
+    bathrooms: candidate.housingBathrooms,
+    lat: candidate.housingLat,
+    lng: candidate.housingLng,
+    listingUrl: candidate.housingListingUrl,
+  };
+}
+
+function toLinkedUser(candidate) {
   return {
     userId: candidate.userId,
     displayName: candidate.displayName,
     compatibilityScore: candidate.compatibilityScore,
     budgetMin: candidate.budgetMin,
     budgetMax: candidate.budgetMax,
-    housing: {
-      housingUnitId: candidate.housingUnitId,
-      name: candidate.housingName,
-      addressLine: candidate.housingAddressLine,
-      monthlyRent: candidate.housingMonthlyRent,
-      bedrooms: candidate.housingBedrooms,
-      bathrooms: candidate.housingBathrooms,
-      lat: candidate.housingLat,
-      lng: candidate.housingLng,
-    },
   };
+}
+
+function compareLinkedUsers(a, b) {
+  const aHasScore = a.compatibilityScore !== null && a.compatibilityScore !== undefined;
+  const bHasScore = b.compatibilityScore !== null && b.compatibilityScore !== undefined;
+
+  if (aHasScore && bHasScore && a.compatibilityScore !== b.compatibilityScore) {
+    return b.compatibilityScore - a.compatibilityScore;
+  }
+
+  if (aHasScore !== bHasScore) {
+    return aHasScore ? -1 : 1;
+  }
+
+  return a.userId - b.userId;
+}
+
+function toMapMarker(housingSource, linkedUsers = []) {
+  const sortedLinkedUsers = [...linkedUsers].sort(compareLinkedUsers);
+  const linkedUserCount =
+    housingSource.linkedUserCount === undefined || housingSource.linkedUserCount === null
+      ? sortedLinkedUsers.length
+      : housingSource.linkedUserCount;
+
+  return {
+    markerId: `housing:${housingSource.housingUnitId}`,
+    linkedByOtherUsers: sortedLinkedUsers.length > 0,
+    linkedUserCount,
+    linkedUsers: sortedLinkedUsers,
+    housing: toMapHousing(housingSource),
+  };
+}
+
+function groupLinkedUsersByHousing(candidates) {
+  const linkedUsersByHousing = new Map();
+
+  candidates.forEach((candidate) => {
+    if (!linkedUsersByHousing.has(candidate.housingUnitId)) {
+      linkedUsersByHousing.set(candidate.housingUnitId, []);
+    }
+
+    linkedUsersByHousing
+      .get(candidate.housingUnitId)
+      .push(toLinkedUser(candidate));
+  });
+
+  return linkedUsersByHousing;
+}
+
+function mapLinkedCandidates(candidates) {
+  const markersByHousing = new Map();
+
+  candidates.forEach((candidate) => {
+    if (!markersByHousing.has(candidate.housingUnitId)) {
+      markersByHousing.set(candidate.housingUnitId, {
+        housingSource: candidate,
+        linkedUsers: [],
+      });
+    }
+
+    markersByHousing.get(candidate.housingUnitId).linkedUsers.push(
+      toLinkedUser(candidate)
+    );
+  });
+
+  return [...markersByHousing.values()].map(({ housingSource, linkedUsers }) =>
+    toMapMarker(housingSource, linkedUsers)
+  );
 }
 
 function getHousingMapData(currentUserId, query) {
   const userId = requirePositiveInteger(currentUserId, "currentUserId");
   const filters = normalizeHousingMapQuery(query);
-  const candidates = housingRepository.listMapCandidates(userId, filters);
+
+  if (filters.visibility === "linkedOnly") {
+    const candidates = housingRepository.listMapCandidates(userId, filters);
+
+    return {
+      items: mapLinkedCandidates(candidates),
+    };
+  }
+
+  const housingUnits = housingRepository.listMapHousingUnits(userId, filters);
+  const linkedUsersByHousing = groupLinkedUsersByHousing(
+    housingRepository.listMapCandidates(userId)
+  );
 
   return {
-    items: candidates.map(toMapMarker),
+    items: housingUnits.map((housingUnit) =>
+      toMapMarker(
+        housingUnit,
+        linkedUsersByHousing.get(housingUnit.housingUnitId) ?? []
+      )
+    ),
   };
 }
 

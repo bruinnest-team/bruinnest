@@ -348,6 +348,91 @@ function unlinkHousingForUser(userId) {
   return unlinkHousingForUserStatement.run(userId);
 }
 
+function buildMapHousingFilters({
+  budgetMin,
+  budgetMax,
+  bedrooms,
+}) {
+  const conditions = [
+    "h.lat IS NOT NULL",
+    "h.lng IS NOT NULL",
+  ];
+  const params = {};
+
+  if (budgetMin !== undefined && budgetMin !== null) {
+    conditions.push("h.monthly_rent >= @budgetMin");
+    params.budgetMin = budgetMin;
+  }
+
+  if (budgetMax !== undefined && budgetMax !== null) {
+    conditions.push("h.monthly_rent <= @budgetMax");
+    params.budgetMax = budgetMax;
+  }
+
+  if (bedrooms !== undefined && bedrooms !== null) {
+    conditions.push("h.bedrooms = @bedrooms");
+    params.bedrooms = bedrooms;
+  }
+
+  return {
+    whereClause: `WHERE ${conditions.join(" AND ")}`,
+    params,
+  };
+}
+
+function mapMapHousingUnitRow(row) {
+  if (!row) return null;
+
+  return {
+    housingUnitId: row.housing_unit_id,
+    housingName: row.housing_name,
+    housingAddressLine: row.housing_address_line,
+    housingCity: row.housing_city,
+    housingMonthlyRent: row.housing_monthly_rent,
+    housingBedrooms: row.housing_bedrooms,
+    housingBathrooms: row.housing_bathrooms,
+    housingLat: row.housing_lat,
+    housingLng: row.housing_lng,
+    housingListingUrl: row.housing_listing_url,
+    linkedUserCount: row.linked_user_count,
+  };
+}
+
+function listMapHousingUnits(currentUserId, filters = {}) {
+  const { whereClause, params } = buildMapHousingFilters(filters);
+
+  const statement = db.prepare(`
+    SELECT
+      h.id AS housing_unit_id,
+      h.name AS housing_name,
+      h.address_line AS housing_address_line,
+      h.city AS housing_city,
+      h.monthly_rent AS housing_monthly_rent,
+      h.bedrooms AS housing_bedrooms,
+      h.bathrooms AS housing_bathrooms,
+      h.lat AS housing_lat,
+      h.lng AS housing_lng,
+      h.listing_url AS housing_listing_url,
+      (
+        SELECT COUNT(*)
+        FROM user_housing_links AS linked
+        INNER JOIN profiles AS linked_profile
+          ON linked_profile.user_id = linked.user_id
+        WHERE linked.housing_unit_id = h.id
+          AND linked.user_id != @currentUserId
+          AND linked_profile.profile_completed = 1
+      ) AS linked_user_count
+    FROM housing_units AS h
+    ${whereClause}
+    ORDER BY h.monthly_rent ASC, h.id ASC
+  `);
+
+  return statement.all({
+    ...params,
+    currentUserId,
+  }).map(mapMapHousingUnitRow).filter(Boolean);
+}
+
 function buildMapCandidatesFilters({
   currentUserId,
   budgetMin,
@@ -404,11 +489,13 @@ function mapMapCandidateRow(row) {
     housingUnitId: row.housing_unit_id,
     housingName: row.housing_name,
     housingAddressLine: row.housing_address_line,
+    housingCity: row.housing_city,
     housingMonthlyRent: row.housing_monthly_rent,
     housingBedrooms: row.housing_bedrooms,
     housingBathrooms: row.housing_bathrooms,
     housingLat: row.housing_lat,
     housingLng: row.housing_lng,
+    housingListingUrl: row.housing_listing_url,
   };
 }
 
@@ -427,11 +514,13 @@ function listMapCandidates(currentUserId, filters = {}) {
       h.id AS housing_unit_id,
       h.name AS housing_name,
       h.address_line AS housing_address_line,
+      h.city AS housing_city,
       h.monthly_rent AS housing_monthly_rent,
       h.bedrooms AS housing_bedrooms,
       h.bathrooms AS housing_bathrooms,
       h.lat AS housing_lat,
       h.lng AS housing_lng,
+      h.listing_url AS housing_listing_url,
       cs.score_percent AS compatibility_score
     FROM profiles AS p
     INNER JOIN user_housing_links AS l ON p.user_id = l.user_id
@@ -457,5 +546,6 @@ module.exports = {
   findLinkedHousingForUser,
   linkHousingToUser,
   unlinkHousingForUser,
+  listMapHousingUnits,
   listMapCandidates,
 };
