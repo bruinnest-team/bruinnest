@@ -16,7 +16,7 @@ function Navbar() {
 
   return (
     <nav className="app-navbar">
-      <Link to="/browse" className="app-navbar-brand">
+      <Link to="/map" className="app-navbar-brand">
         BruinNest
       </Link>
 

@@ -1,9 +1,11 @@
-import { useRef, useState } from "react";
-import { useMapMarkers } from "../features/housing/hooks/useMapMarkers";
-import { MapContainer, Marker, Popup, TileLayer } from "react-leaflet";
+import { useState, useEffect } from "react";
+import { MapContainer, Marker, Popup, TileLayer, useMap } from "react-leaflet";
+import MarkerClusterGroup from "react-leaflet-cluster";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import { Link } from "react-router-dom";
 import { MAP_DEFAULTS } from "../lib/utils/map";
+import { useMapMarkers } from "../features/housing/hooks/useMapMarkers";
 import Navbar from "../shared/components/Navbar";
 
 function makeMarkerIcon(color) {
@@ -33,9 +35,18 @@ function getIcon(score) {
   return DEFAULT_ICON;
 }
 
-function MapPage() {
-  const mapRef = useRef(null);
+function FitBounds({ markers }) {
+  const map = useMap();
+  useEffect(() => {
+    if (markers.length > 0) {
+      const bounds = markers.map((m) => [m.housing.lat, m.housing.lng]);
+      map.fitBounds(bounds, { padding: [40, 40] });
+    }
+  }, [map, markers]);
+  return null;
+}
 
+function MapPage() {
   const [minScore, setMinScore] = useState("");
   const [budgetMin, setBudgetMin] = useState("");
   const [budgetMax, setBudgetMax] = useState("");
@@ -55,25 +66,31 @@ function MapPage() {
     setAppliedFilters({ minScore, budgetMin, budgetMax, bedrooms });
   }
 
-  const bounds = markers.length > 0
-    ? markers.map((m) => [m.housing.lat, m.housing.lng])
-    : undefined;
+  function handleClear() {
+    setMinScore("");
+    setBudgetMin("");
+    setBudgetMax("");
+    setBedrooms("");
+    setAppliedFilters({ minScore: "", budgetMin: "", budgetMax: "", bedrooms: "" });
+  }
 
   return (
     <>
       <Navbar />
-      <main className="page-shell" style={{ paddingTop: "80px" }}>
-        <section className="page-card" style={{ width: "min(100%, 56rem)" }}>
-          <p className="page-eyebrow">MAP</p>
-          <h1>Map Discovery</h1>
-          <p style={{ color: "#666", marginTop: 0 }}>
-            Explore compatible roommates with linked housing near UCLA.
-          </p>
+      <div className="map-discovery-layout">
+        <aside className="map-sidebar">
+          <div className="map-sidebar-header">
+            <p className="page-eyebrow">DISCOVER</p>
+            <h2>Map Discovery</h2>
+            <p className="map-sidebar-subtitle">
+              Find compatible roommates with linked housing near UCLA.
+            </p>
+          </div>
 
-          <form onSubmit={handleFilter}>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: "1rem" }}>
-              <div className="form-field">
-                <label>Min Lifestyle %</label>
+          <form onSubmit={handleFilter} className="map-filters">
+            <div className="map-filter-grid">
+              <label className="map-filter-field">
+                <span>Min Match %</span>
                 <input
                   className="form-input"
                   type="number"
@@ -83,9 +100,9 @@ function MapPage() {
                   onChange={(e) => setMinScore(e.target.value)}
                   placeholder="e.g. 70"
                 />
-              </div>
-              <div className="form-field">
-                <label>Budget Min</label>
+              </label>
+              <label className="map-filter-field">
+                <span>Budget Min</span>
                 <input
                   className="form-input"
                   type="number"
@@ -93,9 +110,9 @@ function MapPage() {
                   onChange={(e) => setBudgetMin(e.target.value)}
                   placeholder="e.g. 900"
                 />
-              </div>
-              <div className="form-field">
-                <label>Budget Max</label>
+              </label>
+              <label className="map-filter-field">
+                <span>Budget Max</span>
                 <input
                   className="form-input"
                   type="number"
@@ -103,9 +120,9 @@ function MapPage() {
                   onChange={(e) => setBudgetMax(e.target.value)}
                   placeholder="e.g. 2000"
                 />
-              </div>
-              <div className="form-field">
-                <label>Bedrooms</label>
+              </label>
+              <label className="map-filter-field">
+                <span>Bedrooms</span>
                 <input
                   className="form-input"
                   type="number"
@@ -113,69 +130,158 @@ function MapPage() {
                   onChange={(e) => setBedrooms(e.target.value)}
                   placeholder="e.g. 1"
                 />
-              </div>
+              </label>
             </div>
-            <button className="btn-primary" type="submit" style={{ width: "auto" }}>
-              Apply Filters
-            </button>
+            <div className="map-filter-actions">
+              <button className="btn-primary" type="submit">Apply</button>
+              <button className="btn-secondary" type="button" onClick={handleClear}>Clear</button>
+            </div>
           </form>
 
-          {error && <p className="form-error">{error.message || "Could not load map data."}</p>}
-
-          <div className="map-container">
-            {isLoading && <p>Loading map data...</p>}
-            {!isLoading && markers.length === 0 && !error && (
-              <p>No compatible linked housing found matching your criteria.</p>
+          <div className="map-listing-list">
+            {isLoading && (
+              <div className="map-status">
+                <div className="map-spinner" />
+                <p>Loading map data...</p>
+              </div>
             )}
+
+            {error && (
+              <div className="map-status map-status-error">
+                <p>{error.message || "Could not load map data."}</p>
+              </div>
+            )}
+
+            {!isLoading && !error && markers.length === 0 && (
+              <div className="map-status">
+                <p>No compatible linked housing found.</p>
+                <p className="map-status-hint">Try adjusting your filters or check back later.</p>
+              </div>
+            )}
+
             {!isLoading && markers.length > 0 && (
-              <MapContainer
-                ref={mapRef}
-                center={MAP_DEFAULTS.center}
-                zoom={MAP_DEFAULTS.zoom}
-                className="map-leaflet"
-                bounds={bounds}
-                scrollWheelZoom
-              >
-                <TileLayer
-                  attribution={MAP_DEFAULTS.attribution}
-                  url={MAP_DEFAULTS.tileUrl}
-                />
-                {markers.map((marker) => (
-                  <Marker
-                    key={marker.userId}
-                    position={[marker.housing.lat, marker.housing.lng]}
-                    icon={getIcon(marker.compatibilityScore)}
+              <p className="map-result-count">
+                {markers.length} result{markers.length !== 1 ? "s" : ""}
+              </p>
+            )}
+
+            {markers.map((marker) => (
+              <div key={marker.userId} className="map-listing-card">
+                <div className="map-listing-card-header">
+                  <div className="map-listing-avatar">
+                    {marker.displayName.charAt(0).toUpperCase()}
+                  </div>
+                  <div>
+                    <h3 className="map-listing-name">{marker.displayName}</h3>
+                    {marker.compatibilityScore !== null &&
+                      marker.compatibilityScore !== undefined && (
+                        <span
+                          className={
+                            "map-listing-score" +
+                            (marker.compatibilityScore >= 80
+                              ? " map-listing-score-high"
+                              : "")
+                          }
+                        >
+                          {marker.compatibilityScore}% match
+                        </span>
+                      )}
+                  </div>
+                </div>
+                <div className="map-listing-housing">
+                  <p className="map-listing-housing-name">
+                    {marker.housing.name}
+                  </p>
+                  <p className="map-listing-housing-detail">
+                    {marker.housing.addressLine}
+                  </p>
+                  <p className="map-listing-housing-detail">
+                    ${marker.housing.monthlyRent}/mo &middot;{" "}
+                    {marker.housing.bedrooms} bed &middot;{" "}
+                    {marker.housing.bathrooms} bath
+                  </p>
+                </div>
+                <div className="map-listing-actions">
+                  <Link
+                    to={"/profiles/" + marker.userId}
+                    className="btn-primary map-listing-btn"
                   >
-                    <Popup>
-                      <div className="map-popup">
-                        <h3 className="map-popup-name">{marker.displayName}</h3>
-                        {marker.compatibilityScore !== null && marker.compatibilityScore !== undefined && (
+                    View Profile
+                  </Link>
+                  <Link
+                    to="/messages"
+                    className="btn-secondary map-listing-btn"
+                  >
+                    Message
+                  </Link>
+                </div>
+              </div>
+            ))}
+          </div>
+        </aside>
+
+        <section className="map-panel">
+          <MapContainer
+            center={MAP_DEFAULTS.center}
+            zoom={MAP_DEFAULTS.zoom}
+            className="map-leaflet"
+            scrollWheelZoom
+          >
+            <TileLayer
+              attribution={MAP_DEFAULTS.attribution}
+              url={MAP_DEFAULTS.tileUrl}
+            />
+            {markers.length > 0 && <FitBounds markers={markers} />}
+            <MarkerClusterGroup chunkedLoading>
+              {markers.map((marker) => (
+                <Marker
+                  key={marker.userId}
+                  position={[marker.housing.lat, marker.housing.lng]}
+                  icon={getIcon(marker.compatibilityScore)}
+                >
+                  <Popup>
+                    <div className="map-popup">
+                      <h3 className="map-popup-name">
+                        {marker.displayName}
+                      </h3>
+                      {marker.compatibilityScore !== null &&
+                        marker.compatibilityScore !== undefined && (
                           <p className="map-popup-score">
-                            Lifestyle {marker.compatibilityScore}% matching
+                            {marker.compatibilityScore}% lifestyle match
                           </p>
                         )}
-                        <p className="map-popup-budget">
-                          Budget: ${marker.budgetMin}–${marker.budgetMax}/mo
-                        </p>
-                        <hr className="map-popup-divider" />
-                        <p className="map-popup-housing-name">
-                          <strong>{marker.housing.name}</strong>
-                        </p>
-                        <p className="map-popup-address">
-                          {marker.housing.addressLine}
-                        </p>
-                        <p className="map-popup-rent">
-                          ${marker.housing.monthlyRent}/mo · {marker.housing.bedrooms} bed · {marker.housing.bathrooms} bath
-                        </p>
+                      <p className="map-popup-budget">
+                        Budget: ${marker.budgetMin}&ndash;$
+                        {marker.budgetMax}/mo
+                      </p>
+                      <hr className="map-popup-divider" />
+                      <p className="map-popup-housing-name">
+                        <strong>{marker.housing.name}</strong>
+                      </p>
+                      <p className="map-popup-address">
+                        {marker.housing.addressLine}
+                      </p>
+                      <p className="map-popup-rent">
+                        ${marker.housing.monthlyRent}/mo &middot;{" "}
+                        {marker.housing.bedrooms} bed &middot;{" "}
+                        {marker.housing.bathrooms} bath
+                      </p>
+                      <div className="map-popup-actions">
+                        <Link
+                          to={"/profiles/" + marker.userId}
+                          className="btn-primary map-popup-btn"
+                        >
+                          View Profile
+                        </Link>
                       </div>
-                    </Popup>
-                  </Marker>
-                ))}
-              </MapContainer>
-            )}
-          </div>
+                    </div>
+                  </Popup>
+                </Marker>
+              ))}
+            </MarkerClusterGroup>
+          </MapContainer>
         </section>
-      </main>
+      </div>
     </>
   );
 }
