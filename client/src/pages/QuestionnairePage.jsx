@@ -202,9 +202,9 @@ function QuestionnairePage() {
                 <button
                   className="btn-secondary"
                   type="button"
-                  onClick={() => navigate("/map")}
+                  onClick={() => navigate("/browse")}
                 >
-                  Back to Map
+                  Back to Browse
                 </button>
               </div>
             </form>
