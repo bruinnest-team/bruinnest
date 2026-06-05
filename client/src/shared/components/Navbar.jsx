@@ -1,18 +1,13 @@
 import { useNavigate, Link } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "../context/AuthContext";
-import { getUnreadSummary } from "../../lib/api/messages";
-import NotificationBell from "./NotificationBell";
+import { useUnreadSummary } from "../../features/messages/hooks/useUnreadSummary";
+import NotificationBell from "../../features/notifications/components/NotificationBell";
 
 function Navbar() {
   const { clearAuth } = useAuth();
   const navigate = useNavigate();
 
-  const { data: unreadCount = 0 } = useQuery({
-    queryKey: ["unreadSummary"],
-    queryFn: () => getUnreadSummary().then((res) => res.data.unreadCount),
-    refetchInterval: 5000,
-  });
+  const { data: unreadCount = 0 } = useUnreadSummary();
 
   async function handleLogout() {
     await clearAuth();

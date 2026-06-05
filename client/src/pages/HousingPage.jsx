@@ -1,11 +1,8 @@
 import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import {
-  getMyLinkedHousing,
-  linkMyHousing,
-  searchHousing,
-  unlinkMyHousing,
-} from "../lib/api/housing";
+import { useSearchHousing } from "../features/housing/hooks/useSearchHousing";
+import { useLinkedHousing } from "../features/housing/hooks/useLinkedHousing";
+import { useLinkHousing } from "../features/housing/hooks/useLinkHousing";
+import { useUnlinkHousing } from "../features/housing/hooks/useUnlinkHousing";
 import Navbar from "../shared/components/Navbar";
 
 const PAGE_SIZE = 10;
@@ -17,8 +14,6 @@ function getPhotoUrl(housing) {
 }
 
 function HousingPage() {
-  const queryClient = useQueryClient();
-
   const [q, setQ] = useState("");
   const [neighborhood, setNeighborhood] = useState("");
   const [budgetMin, setBudgetMin] = useState("");
@@ -34,54 +29,20 @@ function HousingPage() {
   });
   const [page, setPage] = useState(1);
 
-  const buildQuery = (filters, p) => {
-    const parts = [];
-    if (filters.q) parts.push("q=" + encodeURIComponent(filters.q));
-    if (filters.neighborhood) parts.push("neighborhood=" + encodeURIComponent(filters.neighborhood));
-    if (filters.budgetMin) parts.push("budgetMin=" + encodeURIComponent(filters.budgetMin));
-    if (filters.budgetMax) parts.push("budgetMax=" + encodeURIComponent(filters.budgetMax));
-    if (filters.bedrooms) parts.push("bedrooms=" + encodeURIComponent(filters.bedrooms));
-    parts.push("page=" + p);
-    parts.push("pageSize=" + PAGE_SIZE);
-    return "?" + parts.join("&");
-  };
-
   const {
     data: housingData,
     isLoading,
     error,
-  } = useQuery({
-    queryKey: ["housing", searchFilters, page],
-    queryFn: () =>
-      searchHousing(buildQuery(searchFilters, page)).then((res) => res.data),
-    placeholderData: (prev) => prev,
-  });
+  } = useSearchHousing(searchFilters, page);
 
   const items = housingData?.items ?? [];
   const total = housingData?.total ?? 0;
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
-  const { data: linkedHousing = null } = useQuery({
-    queryKey: ["linkedHousing"],
-    queryFn: () => getMyLinkedHousing().then((res) => res.data),
-    retry: false,
-  });
+  const { data: linkedHousing = null } = useLinkedHousing();
 
-  const linkMutation = useMutation({
-    mutationFn: (housingUnitId) => linkMyHousing(housingUnitId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["linkedHousing"] });
-      queryClient.invalidateQueries({ queryKey: ["housing"] });
-    },
-  });
-
-  const unlinkMutation = useMutation({
-    mutationFn: () => unlinkMyHousing(),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["linkedHousing"] });
-      queryClient.invalidateQueries({ queryKey: ["housing"] });
-    },
-  });
+  const linkMutation = useLinkHousing();
+  const unlinkMutation = useUnlinkHousing();
 
   function handleSearch(e) {
     e.preventDefault();

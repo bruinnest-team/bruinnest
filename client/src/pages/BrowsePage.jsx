@@ -1,29 +1,13 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { getProfiles } from "../lib/api/profile";
-import { addFavorite, removeFavorite } from "../lib/api/favorites";
+import { useBrowseProfiles } from "../features/browse/hooks/useBrowseProfiles";
+import { useFavoriteToggle } from "../features/favorites/hooks/useFavoriteToggle";
 import Navbar from "../shared/components/Navbar";
 
 const PAGE_SIZE = 10;
 
-function buildQuery(filters, page) {
-  const parts = [];
-  if (filters.keyword) parts.push("keyword=" + encodeURIComponent(filters.keyword));
-  if (filters.gender) parts.push("gender=" + encodeURIComponent(filters.gender));
-  if (filters.graduationYear) parts.push("graduationYear=" + encodeURIComponent(filters.graduationYear));
-  if (filters.budgetMin) parts.push("budgetMin=" + encodeURIComponent(filters.budgetMin));
-  if (filters.budgetMax) parts.push("budgetMax=" + encodeURIComponent(filters.budgetMax));
-  if (filters.moveInDate) parts.push("moveInDate=" + encodeURIComponent(filters.moveInDate));
-  if (filters.sortBy) parts.push("sortBy=" + encodeURIComponent(filters.sortBy));
-  parts.push("page=" + page);
-  parts.push("pageSize=" + PAGE_SIZE);
-  return "?" + parts.join("&");
-}
-
 function BrowsePage() {
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
 
   const [keyword, setKeyword] = useState("");
   const [gender, setGender] = useState("");
@@ -48,43 +32,17 @@ function BrowsePage() {
     data: profileData,
     isLoading,
     error,
-  } = useQuery({
-    queryKey: ["profiles", searchFilters, page],
-    queryFn: () =>
-      getProfiles(buildQuery(searchFilters, page)).then((res) => res.data),
-    placeholderData: (prev) => prev,
-  });
+  } = useBrowseProfiles(searchFilters, page);
 
   const profiles = profileData?.items ?? [];
   const total = profileData?.total ?? 0;
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
-  const favMutation = useMutation({
-    mutationFn: ({ userId, isFav }) =>
-      isFav ? removeFavorite(userId) : addFavorite(userId),
-    onMutate: ({ userId, isFav }) => {
-      queryClient.setQueryData(
-        ["profiles", searchFilters, page],
-        (old) =>
-          old
-            ? {
-                ...old,
-                items: old.items.map((p) =>
-                  p.userId === userId ? { ...p, isFavorited: !isFav } : p
-                ),
-              }
-            : old
-      );
-    },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["profiles"] });
-      queryClient.invalidateQueries({ queryKey: ["favorites"] });
-    },
-  });
+  const favToggle = useFavoriteToggle();
 
   function toggleFavorite(e, profile) {
     e.stopPropagation();
-    favMutation.mutate({ userId: profile.userId, isFav: profile.isFavorited });
+    favToggle.mutate({ userId: profile.userId, isFavorited: profile.isFavorited });
   }
 
   function handleSearch(e) {
@@ -202,7 +160,7 @@ function BrowsePage() {
                 <button
                   type="button"
                   onClick={(e) => toggleFavorite(e, profile)}
-                  disabled={favMutation.isPending && favMutation.variables?.userId === profile.userId}
+                  disabled={favToggle.isPending && favToggle.variables?.userId === profile.userId}
                   style={{ background: "none", border: "none", cursor: "pointer", fontSize: "1.4rem", lineHeight: 1, color: profile.isFavorited ? "#e0245e" : "#ccc" }}
                   aria-label="Toggle favorite"
                 >

@@ -1,40 +1,20 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import {
-  getNotifications,
-  markNotificationRead,
-  markAllNotificationsRead,
-} from "../../lib/api/notifications";
+import { useNotifications } from "../hooks/useNotifications";
+import { useMarkNotificationRead } from "../hooks/useMarkNotificationRead";
+import { useMarkAllNotificationsRead } from "../hooks/useMarkAllNotificationsRead";
 
 function NotificationBell() {
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
 
-  const { data, isLoading, isError } = useQuery({
-    queryKey: ["notifications"],
-    queryFn: () =>
-      getNotifications({ page: 1, pageSize: 10 }).then((res) => res.data),
-    refetchInterval: 5000,
-  });
+  const { data, isLoading, isError } = useNotifications();
 
   const items = data?.items ?? [];
   const unreadCount = data?.unreadCount ?? 0;
 
-  const markOneMutation = useMutation({
-    mutationFn: (notificationId) => markNotificationRead(notificationId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["notifications"] });
-    },
-  });
-
-  const markAllMutation = useMutation({
-    mutationFn: () => markAllNotificationsRead(),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["notifications"] });
-    },
-  });
+  const markOneMutation = useMarkNotificationRead();
+  const markAllMutation = useMarkAllNotificationsRead();
 
   function handleNotificationClick(item) {
     if (!item.isRead) {

@@ -72,6 +72,17 @@ Purpose:
 - group UI and interaction logic by domain
 - contain reusable feature-specific components and helpers
 - reduce duplication across pages in the same domain
+- encapsulate TanStack Query logic so pages remain thin
+
+Each feature domain follows a three-layer internal structure:
+
+| Layer | Directory | Responsibility | Imported by |
+|---|---|---|---|
+| UI | `components/` | Pure presentational components (props in, events out) | `pages/` |
+| Data | `hooks/` | `useQuery` / `useMutation` wrappers that call `lib/api` and `queries/` | `pages/` |
+| Query infrastructure | `queries/` | `queryKeys.js`, `*Invalidation.js` — not exported to pages | `hooks/` (same domain only) |
+
+Usage rule: pages import from `components/` and `hooks/`, never from `queries/`.
 
 Examples:
 
@@ -89,6 +100,88 @@ Rules:
 - features may depend on shared UI and API modules
 - features may expose query hooks or small view helpers when that keeps pages simpler
 - features should not directly manage global routing configuration
+- `queries/` modules should only be imported by hooks within the same feature domain
+
+### 3.2 Feature Internal Pattern
+
+Each feature domain organizes its code into three sub-layers with a unidirectional dependency flow:
+
+```mermaid
+flowchart TD
+    P[pages] --> H[hooks/]
+    P --> C[components/]
+    H --> Q[queries/]
+    H --> A[lib/api]
+    Q --> QC[shared/query/queryClient]
+```
+
+#### `queries/` (internal)
+
+Contains two kinds of files, **never imported by pages**:
+
+- `queryKeys.js` — centralized query key constants (prevents magic-string drift)
+- `*Invalidation.js` — helper functions that wrap `queryClient.invalidateQueries` for use in mutation `onSuccess` callbacks
+
+Example for messages:
+
+```js
+// features/messages/queries/queryKeys.js
+export const messagesKeys = {
+  conversations: ["conversations"],
+  messages: (conversationId) => ["messages", conversationId],
+  unreadSummary: ["unreadSummary"],
+};
+
+// features/messages/queries/messageInvalidation.js
+import { queryClient } from "../../../shared/query/queryClient";
+import { messagesKeys } from "./queryKeys";
+
+export function afterSendMessage(conversationId) {
+  queryClient.invalidateQueries({ queryKey: messagesKeys.messages(conversationId) });
+  queryClient.invalidateQueries({ queryKey: messagesKeys.conversations });
+}
+```
+
+#### `hooks/` (exported to pages)
+
+Each hook wraps one `useQuery` or `useMutation`, imports from `queries/` and `lib/api`, and exposes clean data + action objects to pages:
+
+```js
+// features/messages/hooks/useConversations.js
+import { useQuery } from "@tanstack/react-query";
+import { getConversations } from "../../../lib/api/messages";
+import { messagesKeys } from "../queries/queryKeys";
+
+export function useConversations() {
+  return useQuery({
+    queryKey: messagesKeys.conversations,
+    queryFn: () => getConversations().then((res) => res.data.items),
+    refetchInterval: 4000,
+  });
+}
+```
+
+#### Cross-domain cache synchronization
+
+Most features stay domain-pure: they only touch their own `queries/queryKeys.js` entries, and the page orchestrates any cross-domain cache invalidation via `queryClient.invalidateQueries`.
+
+**Exception: favorites.** Favorite state (`isFavorited`) appears on profile details, browse cards, and the favorites list. The `useFavoriteToggle` hook handles all three caches internally via `favoriteInvalidation.js` — pages do zero cross-domain coordination:
+
+```jsx
+// BrowsePage: no cross-domain work needed
+import { useFavoriteToggle } from "../features/favorites/hooks/useFavoriteToggle";
+
+function BrowsePage() {
+  const favToggle = useFavoriteToggle();
+
+  function handleToggle(profile) {
+    favToggle.mutate({ userId: profile.userId, isFavorited: profile.isFavorited });
+    // ↑ hook handles profile + profiles + favorites cache sync automatically
+  }
+}
+```
+
+This keeps most hooks domain-pure while allowing favorites (a naturally cross-cutting concern) to encapsulate its own cache synchronization.
 
 #### `api`
 
@@ -129,7 +222,9 @@ Rules:
 
 ## 4. Dependency Direction
 
-Dependencies should flow in one direction only:
+Dependencies should flow in one direction only.
+
+### External layers
 
 ```mermaid
 flowchart TD
@@ -142,14 +237,28 @@ flowchart TD
     api --> shared
 ```
 
+### Inside features
+
+```mermaid
+flowchart TD
+    P[pages] --> FH[features/&lt;domain&gt;/hooks/]
+    P --> FC[features/&lt;domain&gt;/components/]
+    FH --> FQ[features/&lt;domain&gt;/queries/]
+    FH --> A[lib/api]
+    FQ --> QC[shared/query/queryClient]
+```
+
 Allowed dependencies:
 
 - `routes -> pages`
-- `pages -> features`
+- `pages -> features/hooks`
+- `pages -> features/components`
 - `pages -> api`
 - `pages -> shared`
-- `features -> api`
-- `features -> shared`
+- `features/hooks -> features/queries`
+- `features/hooks -> api`
+- `features/hooks -> shared`
+- `features/components -> shared`
 - `api -> shared/utils`
 
 Disallowed dependencies:
@@ -158,6 +267,9 @@ Disallowed dependencies:
 - `api -> features`
 - `shared -> pages`
 - `shared -> features`
+- `pages -> features/queries` (query infrastructure must remain opaque to pages)
+- `features/components -> features/hooks` (components are pure UI, props in / events out)
+- `features/components -> api` (data-fetching belongs in hooks)
 - `routes -> api` for endpoint logic
 
 ### 4.1 Server-State Coordination Rule
@@ -173,7 +285,8 @@ Phase 2 introduces multiple screens that read and mutate shared server state:
 To keep those flows consistent:
 
 - transport details stay inside API wrappers
-- server-state caching, invalidation, and polling should live in `TanStack Query`
+- server-state caching, invalidation, and polling should live in feature `hooks/` backed by `queries/`
+- cross-domain cache invalidation is orchestrated by the **page**, not by hooks (hooks stay domain-pure)
 - page components should orchestrate UI and navigation, not cache synchronization details
 
 ## 5. Recommended Directory Structure
@@ -207,22 +320,41 @@ client/
 │   │   │   └── profileHelpers.js
 │   │   ├── browse/
 │   │   │   ├── components/
-│   │   │   └── browseHelpers.js
+│   │   │   ├── hooks/
+│   │   │   └── queries/
 │   │   ├── messages/
 │   │   │   ├── components/
-│   │   │   └── messageHelpers.js
+│   │   │   │   ├── ChatPanel.jsx
+│   │   │   │   ├── ConversationList.jsx
+│   │   │   │   └── MessageAvatar.jsx
+│   │   │   ├── hooks/
+│   │   │   │   ├── useConversations.js
+│   │   │   │   ├── useConversationMessages.js
+│   │   │   │   ├── useUnreadSummary.js
+│   │   │   │   ├── useSendMessage.js
+│   │   │   │   └── useMarkConversationRead.js
+│   │   │   └── queries/
+│   │   │       ├── queryKeys.js
+│   │   │       └── messageInvalidation.js
 │   │   ├── questionnaire/
 │   │   │   ├── components/
 │   │   │   └── questionnaireHelpers.js
 │   │   ├── notifications/
 │   │   │   ├── components/
-│   │   │   └── notificationHelpers.js
+│   │   │   ├── hooks/
+│   │   │   └── queries/
 │   │   ├── favorites/
 │   │   │   ├── components/
-│   │   │   └── favoriteHelpers.js
+│   │   │   ├── hooks/
+│   │   │   │   ├── useFavoritesList.js
+│   │   │   │   └── useFavoriteToggle.js
+│   │   │   └── queries/
+│   │   │       ├── queryKeys.js
+│   │   │       └── favoriteInvalidation.js
 │   │   └── housing/
 │   │       ├── components/
-│   │       └── housingHelpers.js
+│   │       ├── hooks/
+│   │       └── queries/
 │   ├── lib/
 │   │   ├── api/
 │   │   │   ├── client.js
@@ -311,7 +443,9 @@ Frontend rules owned by this module:
 Files:
 
 - `pages/MessagesPage.jsx`
-- `features/messages/components/*`
+- `features/messages/components/` — `ChatPanel.jsx`, `ConversationList.jsx`, `MessageAvatar.jsx`
+- `features/messages/hooks/` — `useConversations.js`, `useConversationMessages.js`, `useUnreadSummary.js`, `useSendMessage.js`, `useMarkConversationRead.js`
+- `features/messages/queries/` — `queryKeys.js`, `messageInvalidation.js`
 - `lib/api/messages.js`
 - `shared/components/Navbar.jsx`
 
@@ -325,7 +459,8 @@ Responsibilities:
 
 Frontend rules owned by this module:
 
-- message polling should be isolated to message-related pages or query hooks
+- message polling should be isolated to query hooks (`useConversations`, `useConversationMessages`, `useUnreadSummary`) — not scattered across components
+- mutation invalidation (send, mark read) should be centralized in `queries/messageInvalidation.js`
 - message list and unread badge should stay in sync with the backend
 - sending a message should update the visible thread immediately after a successful response
 
@@ -378,6 +513,8 @@ Files:
 
 - `pages/FavoritesPage.jsx`
 - `features/favorites/components/*`
+- `features/favorites/hooks/` — `useFavoritesList.js`, `useFavoriteToggle.js`
+- `features/favorites/queries/` — `queryKeys.js`, `favoriteInvalidation.js`
 - `lib/api/favorites.js`
 
 Responsibilities:
@@ -388,8 +525,10 @@ Responsibilities:
 
 Frontend rules owned by this module:
 
-- favorite toggles should update visible UI quickly after success
+- favorite toggles should update visible UI quickly after success (optimistic update via `useFavoriteToggle`)
+- favorite invalidation should be centralized in `queries/favoriteInvalidation.js`
 - favorites page should reuse the same profile-card presentation patterns where possible
+- when a favorite toggle affects caches outside the favorites domain (e.g. browse profiles), the calling page orchestrates the cross-domain invalidation
 
 ## 6.7 Housing and Map Module (Added in Phase 2)
 
@@ -587,6 +726,136 @@ Recommended responsibility:
 - configure `TanStack Query` defaults
 - centralize polling intervals, stale times, and query invalidation helpers where useful
 
+## 8.3 Query Conventions
+
+All TanStack Query keys, invalidation helpers, and hooks must follow these conventions.
+
+### Query key naming
+
+Define keys in a namespaced object per domain inside `features/<domain>/queries/queryKeys.js`:
+
+```js
+// features/messages/queries/queryKeys.js
+export const messagesKeys = {
+  all: ["messages"],
+  conversations: ["conversations"],
+  messages: (conversationId) => ["messages", conversationId],
+  unreadSummary: ["unreadSummary"],
+};
+
+// features/favorites/queries/queryKeys.js
+export const favoritesKeys = {
+  all: ["favorites"],
+  list: () => ["favorites", "list"],
+  profiles: {
+    all: ["profiles"],
+    browse: (filters, page) => ["profiles", filters, page],
+  },
+  profile: {
+    all: ["profile"],
+    detail: (userId) => ["profile", String(userId)],
+  },
+};
+```
+
+Rules:
+
+- use domain-prefixed export names (`messagesKeys`, `favoritesKeys`) for grep-ability
+- use factory functions for keys with dynamic segments (e.g. `messages: (id) => [...]`)
+- never use raw string keys (`["favorites"]`) outside of `queries/queryKeys.js`
+
+### Cache synchronization helpers
+
+Define cache synchronization functions in `features/<domain>/queries/<domain>Invalidation.js` (e.g. `messageInvalidation.js`, `favoriteInvalidation.js`). These files contain two kinds of utilities:
+
+**Invalidation functions** — wrap `queryClient.invalidateQueries` for use after mutation success:
+
+```js
+// features/messages/queries/messageInvalidation.js
+import { queryClient } from "../../../shared/query/queryClient";
+import { messagesKeys } from "./queryKeys";
+
+export function afterSendMessage(conversationId) {
+  queryClient.invalidateQueries({ queryKey: messagesKeys.messages(conversationId) });
+  queryClient.invalidateQueries({ queryKey: messagesKeys.conversations });
+}
+```
+
+**Optimistic update functions** — use `setQueryData` / `setQueriesData` to immediately patch all affected caches before the server responds:
+
+```js
+// features/favorites/queries/favoriteInvalidation.js
+import { queryClient } from "../../../shared/query/queryClient";
+import { favoritesKeys } from "./queryKeys";
+
+/** Invalidate all caches affected by a favorite toggle */
+export function invalidateFavoriteCaches(userId) {
+  queryClient.invalidateQueries({ queryKey: favoritesKeys.all });
+  queryClient.invalidateQueries({ queryKey: favoritesKeys.profiles.all });
+  if (userId != null) {
+    queryClient.invalidateQueries({ queryKey: favoritesKeys.profile.detail(userId) });
+  }
+}
+
+/** Optimistic update: immediately patch isFavorited in all caches */
+export function patchFavoriteState(userId, isFavorited) {
+  const id = String(userId);
+
+  // profile detail
+  queryClient.setQueryData(favoritesKeys.profile.detail(id), (old) =>
+    old ? { ...old, isFavorited } : old
+  );
+
+  // all browse list paginations
+  queryClient.setQueriesData(
+    { queryKey: favoritesKeys.profiles.all },
+    (old) =>
+      old?.items
+        ? {
+            ...old,
+            items: old.items.map((p) =>
+              String(p.userId) === id ? { ...p, isFavorited } : p
+            ),
+          }
+        : old
+  );
+
+  // favorites list: remove on un-favorite, don't fabricate on add
+  if (!isFavorited) {
+    queryClient.setQueryData(favoritesKeys.list(), (old = []) =>
+      old.filter((p) => String(p.userId) !== id)
+    );
+  }
+}
+```
+
+Rules:
+
+- invalidation files import `queryClient` from `shared/query/queryClient.js`
+- invalidation files import `*Keys` from their sibling `queryKeys.js`
+- only `hooks/` files import these helpers; pages never import them
+- name invalidation functions as `after<Action>()` or `invalidate<Domain>Caches()`
+- name optimistic update functions as `patch<State>()`
+- mutation hooks call `patch*()` in `onMutate`, `invalidate*()` in `onSettled`, and reverse the patch in `onError` for rollback
+
+### Hook naming
+
+Hooks in `features/<domain>/hooks/` follow these patterns:
+
+| Pattern | Returns | Example |
+|---|---|---|
+| `use<Data>()` | query result (`{ data, isLoading, error }`) | `useConversations`, `useFavoritesList` |
+| `use<Action>()` | mutation result (`{ mutate, isPending }`) | `useSendMessage`, `useFavoriteToggle` |
+| `use<Data>By<Key>()` | query result with dynamic key | `useConversationMessages(activeId)` |
+
+### Cross-domain invalidation
+
+The default rule: when a mutation in domain A must invalidate caches from domain B, the **page** calls `queryClient.invalidateQueries` for domain B's keys. This keeps hooks domain-pure and gives pages explicit control over cross-domain cache coordination.
+
+**Exception: favorites.** Favorite state (`isFavorited`) is displayed across profile details, browse list cards, and the favorites list. Toggling a favorite must update all three views atomically. Since this is a business rule inherent to the favorites domain, `features/favorites/queries/favoriteInvalidation.js` is allowed to know about both `favoritesKeys` and the `profiles` and `profile` sub-keys. The `useFavoriteToggle` hook handles all three caches internally — pages do zero cross-domain coordination for favorites.
+
+Other domains follow the default page-based approach unless a similarly cross-cutting business rule emerges.
+
 ## 9. State Management Strategy
 
 The current frontend should split state into two categories:
@@ -598,7 +867,8 @@ Recommended state strategy:
 
 - use local component state for page-specific UI state such as search drafts, modal visibility, selected conversation, or map panel toggles
 - use shared context only for cross-page app state such as authenticated user
-- use `TanStack Query` for server state, polling, cache invalidation, and mutation synchronization
+- use feature `hooks/` (backed by TanStack Query) for server state, polling, cache invalidation, and mutation synchronization
+- pages import hooks and components from feature domains; they do not import from `queries/`
 - keep transport details behind API modules
 - avoid storing duplicated copies of the same server data in many places
 
@@ -610,10 +880,10 @@ The frontend should use `fetch` through wrapper modules rather than inline reque
 
 Recommended rule:
 
-- pages trigger data loads
+- pages import feature hooks to trigger data loads
 - API wrappers perform the request
-- query hooks or page-level queries manage caching, polling, and invalidation
-- pages and feature components consume normalized results
+- feature hooks manage caching, polling, and invalidation via `queries/`
+- pages and feature components consume normalized results produced by hooks
 
 Examples:
 
@@ -634,18 +904,19 @@ sequenceDiagram
     participant User
     participant Route
     participant Page
-    participant Feature
+    participant Hook
     participant Api
     participant Backend
 
     User->>Route: navigate or interact
     Route->>Page: render screen
-    Page->>Feature: compose page section
-    Feature->>Api: request data or submit action
+    Page->>Hook: useXxx()
+    Hook->>Api: api wrapper call
     Api->>Backend: HTTP request
     Backend-->>Api: JSON response
-    Api-->>Feature: normalized data
-    Feature-->>Page: renderable state
+    Api-->>Hook: normalized data
+    Hook-->>Page: { data, isLoading, error }
+    Page->>Feature: pass data as props
 ```
 
 ### 11.1 Query Flow
@@ -654,18 +925,21 @@ The expected query-driven polling flow is:
 
 ```mermaid
 sequenceDiagram
-    participant Component
-    participant Query
+    participant Page
+    participant Hook
+    participant QueryClient
     participant Api
     participant Backend
 
-    Component->>Query: subscribe to key
-    Query->>Api: fetch function
+    Page->>Hook: useXxx()
+    Hook->>QueryClient: useQuery(key, queryFn)
+    QueryClient->>Api: api wrapper call
     Api->>Backend: HTTP request
     Backend-->>Api: JSON response
-    Api-->>Query: normalized data
-    Query-->>Component: cached result
-    Query->>Api: refetch on interval or invalidation
+    Api-->>QueryClient: normalized data
+    QueryClient-->>Hook: cached result
+    Hook-->>Page: { data, isLoading, error }
+    QueryClient->>Api: refetch on interval or invalidation
 ```
 
 ## 12. Validation Strategy

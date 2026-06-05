@@ -1,10 +1,9 @@
 import { useRef, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useMapMarkers } from "../features/housing/hooks/useMapMarkers";
 import { MapContainer, Marker, Popup, TileLayer } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { getHousingMapData } from "../lib/api/housing";
-import { MAP_DEFAULTS, mapQueryFromState } from "../lib/utils/map";
+import { MAP_DEFAULTS } from "../lib/utils/map";
 import Navbar from "../shared/components/Navbar";
 
 function makeMarkerIcon(color) {
@@ -49,13 +48,7 @@ function MapPage() {
     bedrooms: "",
   });
 
-  const { data: markers = [], isLoading, error } = useQuery({
-    queryKey: ["mapMarkers", appliedFilters],
-    queryFn: () => {
-      const query = mapQueryFromState(appliedFilters);
-      return getHousingMapData(query).then((res) => res.data.items);
-    },
-  });
+  const { data: markers = [], isLoading, error } = useMapMarkers(appliedFilters);
 
   function handleFilter(e) {
     e.preventDefault();
