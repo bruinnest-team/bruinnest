@@ -57,7 +57,7 @@ function ProfileSetupPage() {
       refreshAuth(currentUser, true);
       queryClient.invalidateQueries({ queryKey: ["myProfile"] });
       queryClient.invalidateQueries({ queryKey: ["profiles"] });
-      navigate("/browse");
+      navigate("/map");
     },
   });
 
