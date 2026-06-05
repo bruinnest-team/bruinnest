@@ -122,7 +122,8 @@ INSERT INTO user_housing_links (id, user_id, housing_unit_id, linked_at, updated
   (9004, 1006, (SELECT id FROM housing_units WHERE external_id = 'kelton-307'), '2026-05-16T20:03:00.000Z', '2026-05-16T20:03:00.000Z'),
   (9005, 1007, (SELECT id FROM housing_units WHERE external_id = '10798-lindbrook'), '2026-05-16T20:04:00.000Z', '2026-05-16T20:04:00.000Z'),
   (9006, 1008, (SELECT id FROM housing_units WHERE external_id = '1260-veteran-317'), '2026-05-16T20:05:00.000Z', '2026-05-16T20:05:00.000Z'),
-  (9007, 1011, (SELECT id FROM housing_units WHERE external_id = '400-landfair-4'), '2026-05-16T20:06:00.000Z', '2026-05-16T20:06:00.000Z')
+  -- Kate intentionally shares Bob's housing link so the map demo shows multiple users on one marker.
+  (9007, 1011, (SELECT id FROM housing_units WHERE external_id = '5XryM8-2bd'), '2026-05-16T20:06:00.000Z', '2026-05-16T20:06:00.000Z')
 ON CONFLICT(id) DO UPDATE SET
   user_id = excluded.user_id,
   housing_unit_id = excluded.housing_unit_id,
