@@ -1,54 +1,27 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { getProfileById } from "../lib/api/profile";
-import { createOrGetConversation } from "../lib/api/messages";
-import { addFavorite, removeFavorite } from "../lib/api/favorites";
+import { useStartConversation } from "../features/messages/hooks/useStartConversation";
+import { useProfileDetail } from "../features/profile/hooks/useProfileDetail";
+import { useFavoriteToggle } from "../features/favorites/hooks/useFavoriteToggle";
 import Navbar from "../shared/components/Navbar";
 
 function ProfileDetailPage() {
   const { userId } = useParams();
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
 
   const {
     data: profile,
     isLoading,
     error,
-  } = useQuery({
-    queryKey: ["profile", userId],
-    queryFn: () => getProfileById(userId).then((res) => res.data),
-  });
+  } = useProfileDetail(userId);
 
-  const messageMutation = useMutation({
-    mutationFn: () => createOrGetConversation(Number(userId)),
-    onSuccess: (res) => {
-      navigate("/messages", {
-        state: { conversationId: res.data.conversationId },
-      });
-    },
-  });
+  const messageMutation = useStartConversation();
 
-  const favMutation = useMutation({
-    mutationFn: () =>
-      profile.isFavorited
-        ? removeFavorite(Number(userId))
-        : addFavorite(Number(userId)),
-    onMutate: () => {
-      queryClient.setQueryData(["profile", userId], (old) =>
-        old ? { ...old, isFavorited: !old.isFavorited } : old
-      );
-    },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["profile", userId] });
-      queryClient.invalidateQueries({ queryKey: ["favorites"] });
-      queryClient.invalidateQueries({ queryKey: ["profiles"] });
-    },
-  });
+  const favToggle = useFavoriteToggle();
 
   const errMsg =
     error?.message ||
     messageMutation.error?.message ||
-    favMutation.error?.message ||
+    favToggle.error?.message ||
     "";
 
   return (
@@ -184,7 +157,15 @@ function ProfileDetailPage() {
                   <button
                     className="btn-primary"
                     type="button"
-                    onClick={() => messageMutation.mutate()}
+                    onClick={() =>
+                      messageMutation.mutate(Number(userId), {
+                        onSuccess: (res) => {
+                          navigate("/messages", {
+                            state: { conversationId: res.data.conversationId },
+                          });
+                        },
+                      })
+                    }
                     disabled={messageMutation.isPending}
                   >
                     {messageMutation.isPending ? "Starting..." : "Send Message"}
@@ -193,8 +174,8 @@ function ProfileDetailPage() {
                 <button
                   className="btn-secondary"
                   type="button"
-                  onClick={() => favMutation.mutate()}
-                  disabled={favMutation.isPending}
+                  onClick={() => favToggle.mutate({ userId: Number(userId), isFavorited: profile.isFavorited })}
+                  disabled={favToggle.isPending}
                 >
                   {profile.isFavorited ? "♥ Favorited" : "♡ Add to Favorites"}
                 </button>

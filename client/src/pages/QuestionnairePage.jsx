@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { getMyQuestionnaire, upsertMyQuestionnaire } from "../lib/api/questionnaire";
+import { useMyQuestionnaire } from "../features/questionnaire/hooks/useMyQuestionnaire";
+import { useUpsertQuestionnaire } from "../features/questionnaire/hooks/useUpsertQuestionnaire";
 import Navbar from "../shared/components/Navbar";
 
 const QUESTIONS = [
@@ -103,16 +103,11 @@ const EMPTY_ANSWERS = Object.fromEntries(QUESTIONS.map((q) => [q.field, ""]));
 
 function QuestionnairePage() {
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
   const [answers, setAnswers] = useState(EMPTY_ANSWERS);
   const [validationError, setValidationError] = useState("");
   const [justSaved, setJustSaved] = useState(false);
 
-  const { data, isLoading } = useQuery({
-    queryKey: ["questionnaire"],
-    queryFn: () => getMyQuestionnaire().then((res) => res.data),
-    retry: false,
-  });
+  const { data, isLoading } = useMyQuestionnaire();
 
   useEffect(() => {
     if (data) {
@@ -120,14 +115,7 @@ function QuestionnairePage() {
     }
   }, [data]);
 
-  const upsertMutation = useMutation({
-    mutationFn: (payload) => upsertMyQuestionnaire(payload),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["questionnaire"] });
-      queryClient.invalidateQueries({ queryKey: ["profiles"] });
-      setJustSaved(true);
-    },
-  });
+  const upsertMutation = useUpsertQuestionnaire();
 
   function handleChange(field, value) {
     setAnswers((prev) => ({ ...prev, [field]: value }));
@@ -144,7 +132,9 @@ function QuestionnairePage() {
       return;
     }
 
-    upsertMutation.mutate(answers);
+    upsertMutation.mutate(answers, {
+      onSuccess: () => setJustSaved(true),
+    });
   }
 
   const errMsg =

@@ -1,35 +1,26 @@
 import { useNavigate } from "react-router-dom";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { listFavorites, removeFavorite } from "../lib/api/favorites";
+import { useFavoritesList } from "../features/favorites/hooks/useFavoritesList";
+import { useFavoriteToggle } from "../features/favorites/hooks/useFavoriteToggle";
 import Navbar from "../shared/components/Navbar";
 
 function FavoritesPage() {
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
 
   const {
     data: favorites = [],
     isLoading,
     error,
-  } = useQuery({
-    queryKey: ["favorites"],
-    queryFn: () => listFavorites().then((res) => res.data.items),
-  });
+  } = useFavoritesList();
 
-  const removeMutation = useMutation({
-    mutationFn: (userId) => removeFavorite(userId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["favorites"] });
-    },
-  });
+  const favToggle = useFavoriteToggle();
 
   function handleRemove(e, userId) {
     e.stopPropagation();
-    removeMutation.mutate(userId);
+    favToggle.mutate({ userId, isFavorited: true });
   }
 
   const errMsg =
-    error?.message || removeMutation.error?.message || "";
+    error?.message || favToggle.error?.message || "";
 
   return (
     <>
@@ -56,7 +47,7 @@ function FavoritesPage() {
                 <button
                   type="button"
                   onClick={(e) => handleRemove(e, profile.userId)}
-                  disabled={removeMutation.isPending && removeMutation.variables === profile.userId}
+                  disabled={favToggle.isPending && favToggle.variables?.userId === profile.userId}
                   style={{ background: "#eff6ff", border: "1px solid #bfdbfe", color: "#1d4ed8", cursor: "pointer", fontSize: "0.8rem", fontWeight: 600, padding: "0.35rem 0.9rem", borderRadius: "999px" }}
                   aria-label="Remove favorite"
                 >

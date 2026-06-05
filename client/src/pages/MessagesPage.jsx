@@ -1,80 +1,38 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useLocation } from "react-router-dom";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import {
-  getConversations,
-  getConversationMessages,
-  sendMessage,
-  markConversationRead,
-  getUnreadSummary,
-} from "../lib/api/messages";
-import ChatPanel from "../features/messages/ChatPanel";
-import ConversationList from "../features/messages/ConversationList";
+import { useConversations } from "../features/messages/hooks/useConversations";
+import { useConversationMessages } from "../features/messages/hooks/useConversationMessages";
+import { useUnreadSummary } from "../features/messages/hooks/useUnreadSummary";
+import { useSendMessage } from "../features/messages/hooks/useSendMessage";
+import { useMarkConversationRead } from "../features/messages/hooks/useMarkConversationRead";
+import ChatPanel from "../features/messages/components/ChatPanel";
+import ConversationList from "../features/messages/components/ConversationList";
 import Navbar from "../shared/components/Navbar";
 import { useAuth } from "../shared/context/AuthContext";
-
-const POLL_INTERVAL = 4000;
 
 function MessagesPage() {
   const location = useLocation();
   const { currentUser } = useAuth();
-  const queryClient = useQueryClient();
   const [activeId, setActiveId] = useState(
     location.state?.conversationId || null
   );
   const [draft, setDraft] = useState("");
-  const lastMarkedReadRef = useRef(null);
   const messagesEndRef = useRef(null);
 
   const {
     data: conversations = [],
     isLoading: conversationsLoading,
     error: convError,
-  } = useQuery({
-    queryKey: ["conversations"],
-    queryFn: () => getConversations().then((res) => res.data.items),
-    refetchInterval: POLL_INTERVAL,
-  });
+  } = useConversations();
 
   const {
     data: messages = [],
     error: msgError,
-  } = useQuery({
-    queryKey: ["messages", activeId],
-    queryFn: () =>
-      getConversationMessages(activeId).then((res) => res.data.items),
-    refetchInterval: activeId ? POLL_INTERVAL : false,
-    enabled: !!activeId,
-  });
+  } = useConversationMessages(activeId);
 
-  const { data: unreadTotal = 0 } = useQuery({
-    queryKey: ["unreadSummary"],
-    queryFn: () => getUnreadSummary().then((res) => res.data.unreadCount),
-    refetchInterval: POLL_INTERVAL,
-  });
+  const { data: unreadTotal = 0 } = useUnreadSummary();
 
-  const markReadMutation = useMutation({
-    mutationFn: ({ conversationId, lastReadMessageId }) =>
-      markConversationRead(conversationId, lastReadMessageId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["conversations"] });
-      queryClient.invalidateQueries({ queryKey: ["unreadSummary"] });
-    },
-  });
-
-  useEffect(() => {
-    if (!activeId || messages.length === 0) return;
-    const lastId = messages[messages.length - 1].id;
-    const markKey = `${activeId}:${lastId}`;
-
-    if (markKey !== lastMarkedReadRef.current) {
-      lastMarkedReadRef.current = markKey;
-      markReadMutation.mutate({
-        conversationId: activeId,
-        lastReadMessageId: lastId,
-      });
-    }
-  }, [activeId, messages]);
+  useMarkConversationRead(activeId, messages);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ block: "end" });
@@ -86,19 +44,14 @@ function MessagesPage() {
     }
   }, [location.state]);
 
-  const sendMutation = useMutation({
-    mutationFn: (body) => sendMessage(activeId, body),
-    onSuccess: () => {
-      setDraft("");
-      queryClient.invalidateQueries({ queryKey: ["messages", activeId] });
-      queryClient.invalidateQueries({ queryKey: ["conversations"] });
-    },
-  });
+  const sendMutation = useSendMessage(activeId);
 
   function handleSend(e) {
     e.preventDefault();
     if (!draft.trim() || !activeId) return;
-    sendMutation.mutate(draft.trim());
+    sendMutation.mutate(draft.trim(), {
+      onSuccess: () => setDraft(""),
+    });
   }
 
   function handleSelectConversation(conversationId) {

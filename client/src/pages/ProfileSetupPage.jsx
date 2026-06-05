@@ -1,18 +1,13 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import {
-  getMyProfile,
-  createProfile,
-  updateMyProfile,
-  uploadMyAvatar,
-} from "../lib/api/profile";
+import { useMyProfile } from "../features/profile/hooks/useMyProfile";
+import { useSaveProfile } from "../features/profile/hooks/useSaveProfile";
+import { useUploadAvatar } from "../features/profile/hooks/useUploadAvatar";
 import { useAuth } from "../shared/context/AuthContext";
 
 function ProfileSetupPage() {
   const { refreshAuth, currentUser } = useAuth();
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
 
   const [form, setForm] = useState({
     displayName: "",
@@ -27,11 +22,7 @@ function ProfileSetupPage() {
   const [avatarError, setAvatarError] = useState("");
   const [avatarUploading, setAvatarUploading] = useState(false);
 
-  const { data, isLoading, isError } = useQuery({
-    queryKey: ["myProfile"],
-    queryFn: () => getMyProfile().then((res) => res.data),
-    retry: false,
-  });
+  const { data, isLoading, isError } = useMyProfile();
 
   useEffect(() => {
     if (data) {
@@ -50,30 +41,9 @@ function ProfileSetupPage() {
 
   const isEditing = !isLoading && !isError;
 
-  const saveMutation = useMutation({
-    mutationFn: (data) =>
-      isEditing ? updateMyProfile(data) : createProfile(data),
-    onSuccess: () => {
-      refreshAuth(currentUser, true);
-      queryClient.invalidateQueries({ queryKey: ["myProfile"] });
-      queryClient.invalidateQueries({ queryKey: ["profiles"] });
-      navigate("/browse");
-    },
-  });
+  const saveMutation = useSaveProfile(isEditing);
 
-  const avatarMutation = useMutation({
-    mutationFn: (file) => {
-      const formData = new FormData();
-      formData.append("avatar", file);
-      return uploadMyAvatar(formData);
-    },
-    onSuccess: (res) => {
-      if (res.success && res.data) {
-        setForm((prev) => ({ ...prev, avatarUrl: res.data.avatarUrl }));
-        queryClient.invalidateQueries({ queryKey: ["myProfile"] });
-      }
-    },
-  });
+  const avatarMutation = useUploadAvatar();
 
   function handleChange(e) {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -92,7 +62,7 @@ function ProfileSetupPage() {
 
   function handleSubmit(e) {
     e.preventDefault();
-    const data = {
+    const profileData = {
       displayName: form.displayName,
       gender: form.gender,
       graduationYear: Number(form.graduationYear),
@@ -101,7 +71,12 @@ function ProfileSetupPage() {
       moveInDate: form.moveInDate,
       bio: form.bio,
     };
-    saveMutation.mutate(data);
+    saveMutation.mutate(profileData, {
+      onSuccess: () => {
+        refreshAuth(currentUser, true);
+        navigate("/browse");
+      },
+    });
   }
 
   const submitError =
