@@ -10,66 +10,37 @@ import { useStartConversation } from "../features/messages/hooks/useStartConvers
 import Navbar from "../shared/components/Navbar";
 
 function makeMarkerIcon(color) {
+  const markerSize = 18;
+
   return L.divIcon({
     className: "map-marker",
     html: `<div style="
-      width: 14px;
-      height: 14px;
+      width: ${markerSize}px;
+      height: ${markerSize}px;
       background: ${color};
       border: 2px solid white;
       border-radius: 50%;
       box-shadow: 0 2px 6px rgba(0,0,0,0.35);
     "></div>`,
-    iconSize: [14, 14],
-    iconAnchor: [7, 7],
-    popupAnchor: [0, -7],
+    iconSize: [markerSize, markerSize],
+    iconAnchor: [markerSize / 2, markerSize / 2],
+    popupAnchor: [0, -markerSize / 2],
   });
 }
 
-const HIGH_MATCH_ICON = makeMarkerIcon("#1e3a5f");
-const DEFAULT_ICON = makeMarkerIcon("#64748b");
+const HOUSING_ICON = makeMarkerIcon("#dc2626");
 
 const VISIBILITY_OPTIONS = [
   { value: "all", label: "All housing" },
   { value: "linkedOnly", label: "Linked by others" },
 ];
 
-function getIcon(score) {
-  if (score !== null && score !== undefined && score >= 80) {
-    return HIGH_MATCH_ICON;
-  }
-  return DEFAULT_ICON;
+function getIcon() {
+  return HOUSING_ICON;
 }
 
 function getLinkedUsers(marker) {
   return Array.isArray(marker.linkedUsers) ? marker.linkedUsers : [];
-}
-
-function getBestLinkedUser(marker) {
-  const linkedUsers = getLinkedUsers(marker);
-
-  return linkedUsers.reduce((bestUser, user) => {
-    if (!bestUser) return user;
-
-    const userScore = user.compatibilityScore;
-    const bestScore = bestUser.compatibilityScore;
-    const userHasScore = userScore !== null && userScore !== undefined;
-    const bestHasScore = bestScore !== null && bestScore !== undefined;
-
-    if (userHasScore && bestHasScore && userScore > bestScore) {
-      return user;
-    }
-
-    if (userHasScore && !bestHasScore) {
-      return user;
-    }
-
-    return bestUser;
-  }, null);
-}
-
-function getBestCompatibilityScore(marker) {
-  return getBestLinkedUser(marker)?.compatibilityScore;
 }
 
 function getLinkedSummary(marker) {
@@ -433,7 +404,6 @@ function MapPage() {
             <MarkerClusterGroup chunkedLoading>
               {markers.map((marker) => {
                 const linkedUsers = getLinkedUsers(marker);
-                const bestCompatibilityScore = getBestCompatibilityScore(marker);
                 const markerKey =
                   marker.markerId ?? `housing:${marker.housing.housingUnitId}`;
 
@@ -441,7 +411,7 @@ function MapPage() {
                   <Marker
                     key={markerKey}
                     position={[marker.housing.lat, marker.housing.lng]}
-                    icon={getIcon(bestCompatibilityScore)}
+                    icon={getIcon()}
                   >
                     <Popup>
                       <div className="map-popup">
