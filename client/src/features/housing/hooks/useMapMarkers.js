@@ -3,7 +3,7 @@ import { getHousingMapData } from "../../../lib/api/housing";
 import { mapQueryFromState } from "../../../lib/utils/map";
 import { housingKeys } from "../queries/queryKeys";
 
-export function useMapMarkers(filters) {
+export function useMapMarkers(filters = { visibility: "all" }) {
   return useQuery({
     queryKey: housingKeys.mapMarkers(filters),
     queryFn: () => {

@@ -43,6 +43,24 @@ function addOptionalNonNegativeIntegerFilter(normalizedQuery, query, fieldName) 
   );
 }
 
+function normalizeMapVisibility(value) {
+  if (!hasQueryValue(value) || isEmptyOptionalQueryValue(value)) {
+    return "all";
+  }
+
+  if (typeof value !== "string") {
+    throw new ValidationError("visibility must be all or linkedOnly.");
+  }
+
+  const normalizedValue = value.trim();
+
+  if (normalizedValue === "all" || normalizedValue === "linkedOnly") {
+    return normalizedValue;
+  }
+
+  throw new ValidationError("visibility must be all or linkedOnly.");
+}
+
 function normalizeHousingSearchQuery(query = {}) {
   if (!isPlainObject(query)) {
     throw new ValidationError("Housing query must be an object.");
@@ -97,7 +115,9 @@ function normalizeHousingMapQuery(query = {}) {
     throw new ValidationError("Map query must be an object.");
   }
 
-  const normalizedQuery = {};
+  const normalizedQuery = {
+    visibility: normalizeMapVisibility(query.visibility),
+  };
 
   addOptionalNonNegativeIntegerFilter(normalizedQuery, query, "budgetMin");
   addOptionalNonNegativeIntegerFilter(normalizedQuery, query, "budgetMax");
@@ -107,6 +127,12 @@ function normalizeHousingMapQuery(query = {}) {
     hasQueryValue(query.minCompatibilityScore) &&
     !isEmptyOptionalQueryValue(query.minCompatibilityScore)
   ) {
+    if (normalizedQuery.visibility !== "linkedOnly") {
+      throw new ValidationError(
+        "minCompatibilityScore is only available for linked housing map results."
+      );
+    }
+
     normalizedQuery.minCompatibilityScore = requireNonNegativeInteger(
       query.minCompatibilityScore,
       "minCompatibilityScore"

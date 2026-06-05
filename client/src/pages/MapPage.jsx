@@ -28,11 +28,57 @@ function makeMarkerIcon(color) {
 const HIGH_MATCH_ICON = makeMarkerIcon("#1e3a5f");
 const DEFAULT_ICON = makeMarkerIcon("#64748b");
 
+const VISIBILITY_OPTIONS = [
+  { value: "all", label: "All housing" },
+  { value: "linkedOnly", label: "Linked by others" },
+];
+
 function getIcon(score) {
   if (score !== null && score !== undefined && score >= 80) {
     return HIGH_MATCH_ICON;
   }
   return DEFAULT_ICON;
+}
+
+function getLinkedUsers(marker) {
+  return Array.isArray(marker.linkedUsers) ? marker.linkedUsers : [];
+}
+
+function getBestLinkedUser(marker) {
+  const linkedUsers = getLinkedUsers(marker);
+
+  return linkedUsers.reduce((bestUser, user) => {
+    if (!bestUser) return user;
+
+    const userScore = user.compatibilityScore;
+    const bestScore = bestUser.compatibilityScore;
+    const userHasScore = userScore !== null && userScore !== undefined;
+    const bestHasScore = bestScore !== null && bestScore !== undefined;
+
+    if (userHasScore && bestHasScore && userScore > bestScore) {
+      return user;
+    }
+
+    if (userHasScore && !bestHasScore) {
+      return user;
+    }
+
+    return bestUser;
+  }, null);
+}
+
+function getBestCompatibilityScore(marker) {
+  return getBestLinkedUser(marker)?.compatibilityScore;
+}
+
+function getLinkedSummary(marker) {
+  const linkedUserCount = marker.linkedUserCount ?? getLinkedUsers(marker).length;
+
+  if (linkedUserCount === 0) {
+    return "No BruinNest users have linked this housing yet.";
+  }
+
+  return `Linked by ${linkedUserCount} other user${linkedUserCount !== 1 ? "s" : ""}.`;
 }
 
 function FitBounds({ markers }) {
@@ -47,12 +93,14 @@ function FitBounds({ markers }) {
 }
 
 function MapPage() {
+  const [visibility, setVisibility] = useState("all");
   const [minScore, setMinScore] = useState("");
   const [budgetMin, setBudgetMin] = useState("");
   const [budgetMax, setBudgetMax] = useState("");
   const [bedrooms, setBedrooms] = useState("");
 
   const [appliedFilters, setAppliedFilters] = useState({
+    visibility: "all",
     minScore: "",
     budgetMin: "",
     budgetMax: "",
@@ -63,7 +111,31 @@ function MapPage() {
 
   function handleFilter(e) {
     e.preventDefault();
-    setAppliedFilters({ minScore, budgetMin, budgetMax, bedrooms });
+    setAppliedFilters({
+      visibility,
+      minScore: visibility === "linkedOnly" ? minScore : "",
+      budgetMin,
+      budgetMax,
+      bedrooms,
+    });
+  }
+
+  function handleVisibilityChange(nextVisibility) {
+    setVisibility(nextVisibility);
+
+    const nextMinScore = nextVisibility === "linkedOnly" ? minScore : "";
+
+    if (nextVisibility === "all") {
+      setMinScore("");
+    }
+
+    setAppliedFilters({
+      visibility: nextVisibility,
+      minScore: nextMinScore,
+      budgetMin,
+      budgetMax,
+      bedrooms,
+    });
   }
 
   function handleClear() {
@@ -71,8 +143,20 @@ function MapPage() {
     setBudgetMin("");
     setBudgetMax("");
     setBedrooms("");
-    setAppliedFilters({ minScore: "", budgetMin: "", budgetMax: "", bedrooms: "" });
+    setAppliedFilters({
+      visibility,
+      minScore: "",
+      budgetMin: "",
+      budgetMax: "",
+      bedrooms: "",
+    });
   }
+
+  const emptyMessage =
+    appliedFilters.visibility === "linkedOnly"
+      ? "No housing linked by other users matches these filters."
+      : "No housing locations match these filters.";
+  const isMatchFilterDisabled = visibility === "all";
 
   return (
     <>
@@ -83,8 +167,28 @@ function MapPage() {
             <p className="page-eyebrow">DISCOVER</p>
             <h2>Map Discovery</h2>
             <p className="map-sidebar-subtitle">
-              Find compatible roommates with linked housing near UCLA.
+              Explore housing locations near UCLA and see where other users have linked homes.
             </p>
+            <div
+              className="map-visibility-toggle"
+              role="group"
+              aria-label="Housing visibility"
+            >
+              {VISIBILITY_OPTIONS.map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  className={
+                    "map-visibility-option" +
+                    (visibility === option.value ? " map-visibility-option-active" : "")
+                  }
+                  aria-pressed={visibility === option.value}
+                  onClick={() => handleVisibilityChange(option.value)}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
           </div>
 
           <form onSubmit={handleFilter} className="map-filters">
@@ -97,8 +201,9 @@ function MapPage() {
                   min="0"
                   max="100"
                   value={minScore}
+                  disabled={isMatchFilterDisabled}
                   onChange={(e) => setMinScore(e.target.value)}
-                  placeholder="e.g. 70"
+                  placeholder={isMatchFilterDisabled ? "Linked only" : "e.g. 70"}
                 />
               </label>
               <label className="map-filter-field">
@@ -154,7 +259,7 @@ function MapPage() {
 
             {!isLoading && !error && markers.length === 0 && (
               <div className="map-status">
-                <p>No compatible linked housing found.</p>
+                <p>{emptyMessage}</p>
                 <p className="map-status-hint">Try adjusting your filters or check back later.</p>
               </div>
             )}
@@ -165,58 +270,82 @@ function MapPage() {
               </p>
             )}
 
-            {markers.map((marker) => (
-              <div key={marker.userId} className="map-listing-card">
-                <div className="map-listing-card-header">
-                  <div className="map-listing-avatar">
-                    {marker.displayName.charAt(0).toUpperCase()}
+            {markers.map((marker) => {
+              const linkedUsers = getLinkedUsers(marker);
+              const bestLinkedUser = getBestLinkedUser(marker);
+              const bestCompatibilityScore = getBestCompatibilityScore(marker);
+              const markerKey =
+                marker.markerId ?? `housing:${marker.housing.housingUnitId}`;
+
+              return (
+                <div key={markerKey} className="map-listing-card">
+                  <div className="map-listing-card-header">
+                    <div className="map-listing-avatar">
+                      {marker.housing.name.charAt(0).toUpperCase()}
+                    </div>
+                    <div>
+                      <h3 className="map-listing-name">{marker.housing.name}</h3>
+                      <span className="map-listing-linked">
+                        {getLinkedSummary(marker)}
+                      </span>
+                      {bestCompatibilityScore !== null &&
+                        bestCompatibilityScore !== undefined && (
+                          <span
+                            className={
+                              "map-listing-score" +
+                              (bestCompatibilityScore >= 80
+                                ? " map-listing-score-high"
+                                : "")
+                            }
+                          >
+                            {bestCompatibilityScore}% match with{" "}
+                            {bestLinkedUser.displayName}
+                          </span>
+                        )}
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="map-listing-name">{marker.displayName}</h3>
-                    {marker.compatibilityScore !== null &&
-                      marker.compatibilityScore !== undefined && (
-                        <span
-                          className={
-                            "map-listing-score" +
-                            (marker.compatibilityScore >= 80
-                              ? " map-listing-score-high"
-                              : "")
-                          }
-                        >
-                          {marker.compatibilityScore}% match
-                        </span>
-                      )}
+                  <div className="map-listing-housing">
+                    <p className="map-listing-housing-detail">
+                      {marker.housing.addressLine}
+                      {marker.housing.city ? `, ${marker.housing.city}` : ""}
+                    </p>
+                    <p className="map-listing-housing-detail">
+                      ${marker.housing.monthlyRent}/mo &middot;{" "}
+                      {marker.housing.bedrooms} bed &middot;{" "}
+                      {marker.housing.bathrooms} bath
+                    </p>
+                  </div>
+                  <div className="map-listing-actions">
+                    {bestLinkedUser && (
+                      <Link
+                        to={"/profiles/" + bestLinkedUser.userId}
+                        className="btn-primary map-listing-btn"
+                      >
+                        View Profile
+                      </Link>
+                    )}
+                    {linkedUsers.length > 0 && (
+                      <Link
+                        to="/messages"
+                        className="btn-secondary map-listing-btn"
+                      >
+                        Message
+                      </Link>
+                    )}
+                    {marker.housing.listingUrl && (
+                      <a
+                        href={marker.housing.listingUrl}
+                        className="btn-secondary map-listing-btn"
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        View Listing
+                      </a>
+                    )}
                   </div>
                 </div>
-                <div className="map-listing-housing">
-                  <p className="map-listing-housing-name">
-                    {marker.housing.name}
-                  </p>
-                  <p className="map-listing-housing-detail">
-                    {marker.housing.addressLine}
-                  </p>
-                  <p className="map-listing-housing-detail">
-                    ${marker.housing.monthlyRent}/mo &middot;{" "}
-                    {marker.housing.bedrooms} bed &middot;{" "}
-                    {marker.housing.bathrooms} bath
-                  </p>
-                </div>
-                <div className="map-listing-actions">
-                  <Link
-                    to={"/profiles/" + marker.userId}
-                    className="btn-primary map-listing-btn"
-                  >
-                    View Profile
-                  </Link>
-                  <Link
-                    to="/messages"
-                    className="btn-secondary map-listing-btn"
-                  >
-                    Message
-                  </Link>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </aside>
 
@@ -233,51 +362,81 @@ function MapPage() {
             />
             {markers.length > 0 && <FitBounds markers={markers} />}
             <MarkerClusterGroup chunkedLoading>
-              {markers.map((marker) => (
-                <Marker
-                  key={marker.userId}
-                  position={[marker.housing.lat, marker.housing.lng]}
-                  icon={getIcon(marker.compatibilityScore)}
-                >
-                  <Popup>
-                    <div className="map-popup">
-                      <h3 className="map-popup-name">
-                        {marker.displayName}
-                      </h3>
-                      {marker.compatibilityScore !== null &&
-                        marker.compatibilityScore !== undefined && (
-                          <p className="map-popup-score">
-                            {marker.compatibilityScore}% lifestyle match
+              {markers.map((marker) => {
+                const linkedUsers = getLinkedUsers(marker);
+                const bestLinkedUser = getBestLinkedUser(marker);
+                const bestCompatibilityScore = getBestCompatibilityScore(marker);
+                const markerKey =
+                  marker.markerId ?? `housing:${marker.housing.housingUnitId}`;
+
+                return (
+                  <Marker
+                    key={markerKey}
+                    position={[marker.housing.lat, marker.housing.lng]}
+                    icon={getIcon(bestCompatibilityScore)}
+                  >
+                    <Popup>
+                      <div className="map-popup">
+                        <p className="map-popup-housing-name">
+                          <strong>{marker.housing.name}</strong>
+                        </p>
+                        <p className="map-popup-address">
+                          {marker.housing.addressLine}
+                          {marker.housing.city ? `, ${marker.housing.city}` : ""}
+                        </p>
+                        <p className="map-popup-rent">
+                          ${marker.housing.monthlyRent}/mo &middot;{" "}
+                          {marker.housing.bedrooms} bed &middot;{" "}
+                          {marker.housing.bathrooms} bath
+                        </p>
+                        <hr className="map-popup-divider" />
+                        {linkedUsers.length > 0 ? (
+                          <>
+                            <p className="map-popup-linked">
+                              {getLinkedSummary(marker)}
+                            </p>
+                            {bestCompatibilityScore !== null &&
+                              bestCompatibilityScore !== undefined && (
+                                <p className="map-popup-score">
+                                  {bestCompatibilityScore}% lifestyle match with{" "}
+                                  {bestLinkedUser.displayName}
+                                </p>
+                              )}
+                            <p className="map-popup-budget">
+                              Budget: ${bestLinkedUser.budgetMin}&ndash;$
+                              {bestLinkedUser.budgetMax}/mo
+                            </p>
+                          </>
+                        ) : (
+                          <p className="map-popup-unlinked">
+                            No BruinNest users have linked this housing yet.
                           </p>
                         )}
-                      <p className="map-popup-budget">
-                        Budget: ${marker.budgetMin}&ndash;$
-                        {marker.budgetMax}/mo
-                      </p>
-                      <hr className="map-popup-divider" />
-                      <p className="map-popup-housing-name">
-                        <strong>{marker.housing.name}</strong>
-                      </p>
-                      <p className="map-popup-address">
-                        {marker.housing.addressLine}
-                      </p>
-                      <p className="map-popup-rent">
-                        ${marker.housing.monthlyRent}/mo &middot;{" "}
-                        {marker.housing.bedrooms} bed &middot;{" "}
-                        {marker.housing.bathrooms} bath
-                      </p>
-                      <div className="map-popup-actions">
-                        <Link
-                          to={"/profiles/" + marker.userId}
-                          className="btn-primary map-popup-btn"
-                        >
-                          View Profile
-                        </Link>
+                        <div className="map-popup-actions">
+                          {bestLinkedUser && (
+                            <Link
+                              to={"/profiles/" + bestLinkedUser.userId}
+                              className="btn-primary map-popup-btn"
+                            >
+                              View Profile
+                            </Link>
+                          )}
+                          {marker.housing.listingUrl && (
+                            <a
+                              href={marker.housing.listingUrl}
+                              className="btn-secondary map-popup-btn"
+                              target="_blank"
+                              rel="noreferrer"
+                            >
+                              Listing
+                            </a>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  </Popup>
-                </Marker>
-              ))}
+                    </Popup>
+                  </Marker>
+                );
+              })}
             </MarkerClusterGroup>
           </MapContainer>
         </section>

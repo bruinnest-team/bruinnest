@@ -655,6 +655,36 @@ p {
   font-size: 0.875rem;
   margin: 0;
 }
+.map-visibility-toggle {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.25rem;
+  margin-top: 1rem;
+  padding: 0.25rem;
+  border: 1px solid #dbe3ee;
+  border-radius: 0.5rem;
+  background: #f8fafc;
+}
+.map-visibility-option {
+  border: none;
+  border-radius: 0.375rem;
+  background: transparent;
+  color: #475569;
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-weight: 600;
+  min-height: 34px;
+  padding: 0.35rem 0.5rem;
+  transition: background-color 0.15s, color 0.15s, box-shadow 0.15s;
+}
+.map-visibility-option:hover {
+  color: #1e3a5f;
+}
+.map-visibility-option-active {
+  background: #fff;
+  color: #1e3a5f;
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.12);
+}
 .map-filters {
   padding: 1rem 1.5rem;
   border-bottom: 1px solid #e2e8f0;
@@ -675,6 +705,11 @@ p {
 .map-filter-field .form-input {
   font-size: 0.85rem;
   padding: 0.4rem 0.6rem;
+}
+.map-filter-field .form-input:disabled {
+  background: #f1f5f9;
+  color: #94a3b8;
+  cursor: not-allowed;
 }
 .map-filter-actions {
   display: flex;
@@ -734,9 +769,18 @@ p {
   font-weight: 600;
   margin: 0;
 }
+.map-listing-linked {
+  color: #64748b;
+  display: block;
+  font-size: 0.78rem;
+  line-height: 1.35;
+  margin-top: 0.15rem;
+}
 .map-listing-score {
+  display: block;
   font-size: 0.8rem;
   color: #64748b;
+  margin-top: 0.15rem;
 }
 .map-listing-score-high {
   color: #1e3a5f;
@@ -812,6 +856,8 @@ p {
 .map-popup-housing-name { font-size: 0.85rem; margin: 0 0 0.15rem; }
 .map-popup-address { font-size: 0.8rem; color: #64748b; margin: 0 0 0.15rem; }
 .map-popup-rent { font-size: 0.8rem; color: #64748b; margin: 0 0 0.5rem; }
+.map-popup-linked { font-size: 0.8rem; color: #1e3a5f; font-weight: 500; margin: 0 0 0.25rem; }
+.map-popup-unlinked { font-size: 0.8rem; color: #64748b; margin: 0 0 0.5rem; }
 .map-popup-actions { display: flex; gap: 0.5rem; }
 .map-popup-btn { padding: 0.3rem 0.6rem; font-size: 0.75rem; text-decoration: none; text-align: center; border-radius: 0.375rem; width: auto; display: inline-block; }
 .marker-cluster-small, .marker-cluster-medium, .marker-cluster-large { background-color: rgba(30,58,95,0.25); border-radius: 50%; }

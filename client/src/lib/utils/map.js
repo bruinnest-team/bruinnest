@@ -11,9 +11,18 @@ export const MARKER_COLORS = {
   default: "#64748b",
 };
 
-export function mapQueryFromState({ minScore, budgetMin, budgetMax, bedrooms }) {
+export function mapQueryFromState({
+  visibility = "all",
+  minScore,
+  budgetMin,
+  budgetMax,
+  bedrooms,
+}) {
   const parts = [];
-  if (minScore) parts.push("minCompatibilityScore=" + encodeURIComponent(minScore));
+  if (visibility) parts.push("visibility=" + encodeURIComponent(visibility));
+  if (visibility === "linkedOnly" && minScore) {
+    parts.push("minCompatibilityScore=" + encodeURIComponent(minScore));
+  }
   if (budgetMin) parts.push("budgetMin=" + encodeURIComponent(budgetMin));
   if (budgetMax) parts.push("budgetMax=" + encodeURIComponent(budgetMax));
   if (bedrooms) parts.push("bedrooms=" + encodeURIComponent(bedrooms));
