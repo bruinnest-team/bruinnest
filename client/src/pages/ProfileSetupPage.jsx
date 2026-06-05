@@ -86,7 +86,7 @@ function ProfileSetupPage({ mode = "setup" }) {
     saveMutation.mutate(profileData, {
       onSuccess: () => {
         refreshAuth(currentUser, true);
-        navigate(isEditing ? `/profiles/${currentUser.id}` : "/map");
+        navigate(isEditing ? `/profiles/${currentUser.id}` : "/browse");
       },
     });
   }
