@@ -4,7 +4,7 @@ import { useUnreadSummary } from "../../features/messages/hooks/useUnreadSummary
 import NotificationBell from "../../features/notifications/components/NotificationBell";
 
 function Navbar() {
-  const { clearAuth } = useAuth();
+  const { clearAuth, currentUser } = useAuth();
   const navigate = useNavigate();
 
   const { data: unreadCount = 0 } = useUnreadSummary();
@@ -33,7 +33,7 @@ function Navbar() {
           Favorites
         </Link>
 
-        <Link to="/profile/edit" className="app-navbar-link">
+        <Link to={`/profiles/${currentUser?.id}`} className="app-navbar-link">
           Profile
         </Link>
 
