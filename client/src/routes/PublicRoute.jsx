@@ -6,7 +6,7 @@ function PublicRoute({ children }) {
 
   if (loading) return null;
   if (isAuthenticated) {
-    return <Navigate to={profileCompleted ? "/map" : "/profile/setup"} replace />;
+    return <Navigate to={profileCompleted ? "/browse" : "/profile/setup"} replace />;
   }
 
   return children;
