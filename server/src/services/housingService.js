@@ -136,11 +136,7 @@ function getMyLinkedHousing(currentUserId) {
   const userId = requirePositiveInteger(currentUserId, "currentUserId");
   const linkedHousing = housingRepository.findLinkedHousingForUser(userId);
 
-  if (!linkedHousing) {
-    throw new NotFoundError("Linked housing not found.");
-  }
-
-  return toHousingCard(linkedHousing);
+  return linkedHousing ? toHousingCard(linkedHousing) : null;
 }
 
 function getLinkedHousingForUser(targetUserId) {
