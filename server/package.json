@@ -9,7 +9,7 @@
     "db:seed": "node src/scripts/seedDb.js",
     "housing:import": "node src/scripts/importHousingData.js",
     "db:clean": "node src/scripts/cleanDb.js",
-    "db:reset": "node src/scripts/cleanDb.js && node src/scripts/seedDb.js && node src/scripts/importHousingData.js"
+    "db:reset": "node src/scripts/cleanDb.js && node src/scripts/importHousingData.js && node src/scripts/seedDb.js"
   },
   "keywords": [],
   "type": "commonjs",

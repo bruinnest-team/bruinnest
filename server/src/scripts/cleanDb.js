@@ -4,12 +4,22 @@ const env = require("../config/env");
 
 const uploadsDir = path.resolve(__dirname, "../../uploads/avatars");
 const dbPath = env.databasePath;
+const dbSidecarPaths = [
+  dbPath,
+  `${dbPath}-wal`,
+  `${dbPath}-shm`,
+  `${dbPath}-journal`,
+];
+
+function deleteIfExists(filePath) {
+  if (fs.existsSync(filePath)) {
+    fs.unlinkSync(filePath);
+    console.log(`Deleted database file: ${filePath}`);
+  }
+}
 
 function clean() {
-  if (fs.existsSync(dbPath)) {
-    fs.unlinkSync(dbPath);
-    console.log(`Deleted database: ${dbPath}`);
-  }
+  dbSidecarPaths.forEach(deleteIfExists);
 
   if (fs.existsSync(uploadsDir)) {
     const files = fs.readdirSync(uploadsDir);
