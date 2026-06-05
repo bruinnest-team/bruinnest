@@ -1,12 +1,14 @@
-import { useParams, useNavigate } from "react-router-dom";
+import { Link, useParams, useNavigate } from "react-router-dom";
 import { useStartConversation } from "../features/messages/hooks/useStartConversation";
 import { useProfileDetail } from "../features/profile/hooks/useProfileDetail";
 import { useFavoriteToggle } from "../features/favorites/hooks/useFavoriteToggle";
 import Navbar from "../shared/components/Navbar";
+import { useAuth } from "../shared/context/AuthContext";
 
 function ProfileDetailPage() {
   const { userId } = useParams();
   const navigate = useNavigate();
+  const { currentUser } = useAuth();
 
   const {
     data: profile,
@@ -23,6 +25,9 @@ function ProfileDetailPage() {
     messageMutation.error?.message ||
     favToggle.error?.message ||
     "";
+  const isOwnProfile = profile
+    ? String(currentUser?.id) === String(profile.userId)
+    : false;
 
   return (
     <>
@@ -153,32 +158,44 @@ function ProfileDetailPage() {
                   marginTop: "1.5rem",
                 }}
               >
-                {profile.canMessage && (
-                  <button
+                {isOwnProfile ? (
+                  <Link
                     className="btn-primary"
-                    type="button"
-                    onClick={() =>
-                      messageMutation.mutate(Number(userId), {
-                        onSuccess: (res) => {
-                          navigate("/messages", {
-                            state: { conversationId: res.data.conversationId },
-                          });
-                        },
-                      })
-                    }
-                    disabled={messageMutation.isPending}
+                    to="/profile/edit"
+                    style={{ textDecoration: "none" }}
                   >
-                    {messageMutation.isPending ? "Starting..." : "Send Message"}
+                    Edit Profile
+                  </Link>
+                ) : (
+                  profile.canMessage && (
+                    <button
+                      className="btn-primary"
+                      type="button"
+                      onClick={() =>
+                        messageMutation.mutate(Number(userId), {
+                          onSuccess: (res) => {
+                            navigate("/messages", {
+                              state: { conversationId: res.data.conversationId },
+                            });
+                          },
+                        })
+                      }
+                      disabled={messageMutation.isPending}
+                    >
+                      {messageMutation.isPending ? "Starting..." : "Send Message"}
+                    </button>
+                  )
+                )}
+                {!isOwnProfile && (
+                  <button
+                    className="btn-secondary"
+                    type="button"
+                    onClick={() => favToggle.mutate({ userId: Number(userId), isFavorited: profile.isFavorited })}
+                    disabled={favToggle.isPending}
+                  >
+                    {profile.isFavorited ? "♥ Favorited" : "♡ Add to Favorites"}
                   </button>
                 )}
-                <button
-                  className="btn-secondary"
-                  type="button"
-                  onClick={() => favToggle.mutate({ userId: Number(userId), isFavorited: profile.isFavorited })}
-                  disabled={favToggle.isPending}
-                >
-                  {profile.isFavorited ? "♥ Favorited" : "♡ Add to Favorites"}
-                </button>
               </div>
             </>
           )}

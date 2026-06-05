@@ -1,5 +1,6 @@
 export const profileKeys = {
   myProfile: ["myProfile"],
-  detail: (userId) => ["profile", userId],
+  details: ["profile"],
+  detail: (userId) => ["profile", String(userId)],
   all: ["profiles"],
 };
