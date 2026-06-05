@@ -74,7 +74,7 @@ function ProfileSetupPage() {
     saveMutation.mutate(profileData, {
       onSuccess: () => {
         refreshAuth(currentUser, true);
-        navigate("/browse");
+        navigate("/map");
       },
     });
   }
