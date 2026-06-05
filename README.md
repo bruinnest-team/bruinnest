@@ -57,8 +57,8 @@ This repository now includes:
 
 - a Vite + React frontend in `client/`
 - an Express + SQLite backend in `server/`
-- seeded MVP data for local development
-- a local housing dataset in `server/database/data/`
+- demo seed data for local development and product walkthroughs
+- a local housing dataset in `server/database/import-data/westwood-rentals.json`
 - detailed database, API, backend, and frontend documentation in `docs/`
 
 ## Getting Started
@@ -77,17 +77,42 @@ Backend:
 cd server
 npm install
 cp .env.example .env
-npm run db:seed
+npm run db:reset
 npm run dev
 ```
+
+Use `npm run db:reset` for the first local setup and whenever you want a clean demo database. It runs, in order: `db:clean`, `housing:import`, and `db:seed`.
+
+### Database scripts
+
+Run these from `server/`:
+
+| Command | Purpose |
+|---------|---------|
+| `npm run db:reset` | Full reset: delete DB/uploads, import housing, seed demo data |
+| `npm run db:clean` | Delete the SQLite database and uploaded avatars |
+| `npm run housing:import` | Import listings from `database/import-data/westwood-rentals.json` |
+| `npm run db:seed` | Copy seed avatars and load `database/seed.sql` |
+
+`db:seed` assumes housing listings already exist. For a fresh database, use `db:reset` instead of `db:seed` alone.
+
+### Demo account
+
+After seeding, log in with:
+
+- **Email:** `alice@ucla.edu`
+- **Password:** `Password123!`
+
+All seeded accounts share the same password. Alice is the primary demo user and includes preloaded browse matches, compatibility scores, favorites, notifications, map markers (via linked roommates), and message threads.
+
+Other seeded users are background profiles for browse, map, and compatibility demos. Avatar placeholders live in `server/database/seed-assets/avatars/` and are copied into `server/uploads/avatars/` during `db:seed`.
 
 Backend notes:
 
 - Copy `.env.example` to `.env` before starting the server for the first time.
 - `DATABASE_PATH` is resolved relative to the `server/` directory when you run backend commands there.
 - The backend automatically initializes the SQLite database from `database/schema.sql` on startup.
-- Run `npm run db:seed` to load local test users, profiles, and messaging data for backend integration.
-- Seeded users share the demo password `Password123!` for local auth and API testing.
+- Demo seed data covers users, profiles, questionnaires, compatibility scores, favorites, notifications, housing links, messaging, and avatar placeholders.
 - Update `SESSION_SECRET` in `.env` before shared testing or deployment. Do not keep the default `change-me` value.
 
 Frontend notes:
