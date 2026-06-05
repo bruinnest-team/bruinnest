@@ -3,9 +3,10 @@ import { MapContainer, Marker, Popup, TileLayer, useMap } from "react-leaflet";
 import MarkerClusterGroup from "react-leaflet-cluster";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { MAP_DEFAULTS } from "../lib/utils/map";
 import { useMapMarkers } from "../features/housing/hooks/useMapMarkers";
+import { useStartConversation } from "../features/messages/hooks/useStartConversation";
 import Navbar from "../shared/components/Navbar";
 
 function makeMarkerIcon(color) {
@@ -81,6 +82,72 @@ function getLinkedSummary(marker) {
   return `Linked by ${linkedUserCount} other user${linkedUserCount !== 1 ? "s" : ""}.`;
 }
 
+function getLinkedUserMeta(user) {
+  const parts = [];
+
+  if (user.compatibilityScore !== null && user.compatibilityScore !== undefined) {
+    parts.push(`${user.compatibilityScore}% match`);
+  } else {
+    parts.push("No match score");
+  }
+
+  if (user.budgetMin !== null && user.budgetMin !== undefined &&
+      user.budgetMax !== null && user.budgetMax !== undefined) {
+    parts.push(`Budget $${user.budgetMin}-${user.budgetMax}/mo`);
+  }
+
+  return parts.join(" | ");
+}
+
+function LinkedUserList({
+  linkedUsers,
+  onMessage,
+  messagingUserId,
+  isMessaging,
+  variant = "card",
+}) {
+  if (linkedUsers.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className={`map-linked-users map-linked-users-${variant}`}>
+      {linkedUsers.map((user) => {
+        const isThisUserMessaging = isMessaging && messagingUserId === user.userId;
+
+        return (
+          <div className="map-linked-user" key={user.userId}>
+            <div className="map-linked-user-copy">
+              <span className="map-linked-user-name">
+                {user.displayName}
+              </span>
+              <span className="map-linked-user-meta">
+                {getLinkedUserMeta(user)}
+              </span>
+            </div>
+            <div className="map-linked-user-actions">
+              <Link
+                to={"/profiles/" + user.userId}
+                className="btn-secondary map-linked-user-btn"
+              >
+                Profile
+              </Link>
+              <button
+                type="button"
+                className="btn-primary map-linked-user-btn"
+                onClick={() => onMessage(user.userId)}
+                disabled={isMessaging}
+              >
+                {isThisUserMessaging ? "Opening..." : "Message"}
+              </button>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function FitBounds({ markers }) {
   const map = useMap();
   useEffect(() => {
@@ -93,11 +160,13 @@ function FitBounds({ markers }) {
 }
 
 function MapPage() {
+  const navigate = useNavigate();
   const [visibility, setVisibility] = useState("all");
   const [minScore, setMinScore] = useState("");
   const [budgetMin, setBudgetMin] = useState("");
   const [budgetMax, setBudgetMax] = useState("");
   const [bedrooms, setBedrooms] = useState("");
+  const [messagingUserId, setMessagingUserId] = useState(null);
 
   const [appliedFilters, setAppliedFilters] = useState({
     visibility: "all",
@@ -108,6 +177,19 @@ function MapPage() {
   });
 
   const { data: markers = [], isLoading, error } = useMapMarkers(appliedFilters);
+  const startConversation = useStartConversation();
+
+  function handleMessageUser(userId) {
+    setMessagingUserId(userId);
+    startConversation.mutate(Number(userId), {
+      onSuccess: (res) => {
+        navigate("/messages", {
+          state: { conversationId: res.data.conversationId },
+        });
+      },
+      onSettled: () => setMessagingUserId(null),
+    });
+  }
 
   function handleFilter(e) {
     e.preventDefault();
@@ -157,6 +239,7 @@ function MapPage() {
       ? "No housing linked by other users matches these filters."
       : "No housing locations match these filters.";
   const isMatchFilterDisabled = visibility === "all";
+  const messageError = startConversation.error?.message || "";
 
   return (
     <>
@@ -257,6 +340,12 @@ function MapPage() {
               </div>
             )}
 
+            {messageError && (
+              <div className="map-status map-status-error">
+                <p>{messageError}</p>
+              </div>
+            )}
+
             {!isLoading && !error && markers.length === 0 && (
               <div className="map-status">
                 <p>{emptyMessage}</p>
@@ -272,8 +361,6 @@ function MapPage() {
 
             {markers.map((marker) => {
               const linkedUsers = getLinkedUsers(marker);
-              const bestLinkedUser = getBestLinkedUser(marker);
-              const bestCompatibilityScore = getBestCompatibilityScore(marker);
               const markerKey =
                 marker.markerId ?? `housing:${marker.housing.housingUnitId}`;
 
@@ -288,20 +375,6 @@ function MapPage() {
                       <span className="map-listing-linked">
                         {getLinkedSummary(marker)}
                       </span>
-                      {bestCompatibilityScore !== null &&
-                        bestCompatibilityScore !== undefined && (
-                          <span
-                            className={
-                              "map-listing-score" +
-                              (bestCompatibilityScore >= 80
-                                ? " map-listing-score-high"
-                                : "")
-                            }
-                          >
-                            {bestCompatibilityScore}% match with{" "}
-                            {bestLinkedUser.displayName}
-                          </span>
-                        )}
                     </div>
                   </div>
                   <div className="map-listing-housing">
@@ -315,23 +388,19 @@ function MapPage() {
                       {marker.housing.bathrooms} bath
                     </p>
                   </div>
+                  {linkedUsers.length > 0 ? (
+                    <LinkedUserList
+                      linkedUsers={linkedUsers}
+                      onMessage={handleMessageUser}
+                      messagingUserId={messagingUserId}
+                      isMessaging={startConversation.isPending}
+                    />
+                  ) : (
+                    <p className="map-listing-unlinked">
+                      No BruinNest users have linked this housing yet.
+                    </p>
+                  )}
                   <div className="map-listing-actions">
-                    {bestLinkedUser && (
-                      <Link
-                        to={"/profiles/" + bestLinkedUser.userId}
-                        className="btn-primary map-listing-btn"
-                      >
-                        View Profile
-                      </Link>
-                    )}
-                    {linkedUsers.length > 0 && (
-                      <Link
-                        to="/messages"
-                        className="btn-secondary map-listing-btn"
-                      >
-                        Message
-                      </Link>
-                    )}
                     {marker.housing.listingUrl && (
                       <a
                         href={marker.housing.listingUrl}
@@ -364,7 +433,6 @@ function MapPage() {
             <MarkerClusterGroup chunkedLoading>
               {markers.map((marker) => {
                 const linkedUsers = getLinkedUsers(marker);
-                const bestLinkedUser = getBestLinkedUser(marker);
                 const bestCompatibilityScore = getBestCompatibilityScore(marker);
                 const markerKey =
                   marker.markerId ?? `housing:${marker.housing.housingUnitId}`;
@@ -395,17 +463,13 @@ function MapPage() {
                             <p className="map-popup-linked">
                               {getLinkedSummary(marker)}
                             </p>
-                            {bestCompatibilityScore !== null &&
-                              bestCompatibilityScore !== undefined && (
-                                <p className="map-popup-score">
-                                  {bestCompatibilityScore}% lifestyle match with{" "}
-                                  {bestLinkedUser.displayName}
-                                </p>
-                              )}
-                            <p className="map-popup-budget">
-                              Budget: ${bestLinkedUser.budgetMin}&ndash;$
-                              {bestLinkedUser.budgetMax}/mo
-                            </p>
+                            <LinkedUserList
+                              linkedUsers={linkedUsers}
+                              onMessage={handleMessageUser}
+                              messagingUserId={messagingUserId}
+                              isMessaging={startConversation.isPending}
+                              variant="popup"
+                            />
                           </>
                         ) : (
                           <p className="map-popup-unlinked">
@@ -413,14 +477,6 @@ function MapPage() {
                           </p>
                         )}
                         <div className="map-popup-actions">
-                          {bestLinkedUser && (
-                            <Link
-                              to={"/profiles/" + bestLinkedUser.userId}
-                              className="btn-primary map-popup-btn"
-                            >
-                              View Profile
-                            </Link>
-                          )}
                           {marker.housing.listingUrl && (
                             <a
                               href={marker.housing.listingUrl}
