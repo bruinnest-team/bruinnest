@@ -17,7 +17,8 @@ function AppRouter() {
     <Routes>
       <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
       <Route path="/register" element={<PublicRoute><RegisterPage /></PublicRoute>} />
-      <Route path="/profile/setup" element={<ProtectedRoute><ProfileSetupPage /></ProtectedRoute>} />
+      <Route path="/profile/setup" element={<ProtectedRoute><ProfileSetupPage mode="setup" /></ProtectedRoute>} />
+      <Route path="/profile/edit" element={<ProtectedRoute><ProfileSetupPage mode="edit" /></ProtectedRoute>} />
       <Route path="/browse" element={<ProtectedRoute><BrowsePage /></ProtectedRoute>} />
       <Route path="/questionnaire" element={<ProtectedRoute><QuestionnairePage /></ProtectedRoute>} />
       <Route path="/housing" element={<ProtectedRoute><HousingPage /></ProtectedRoute>} />

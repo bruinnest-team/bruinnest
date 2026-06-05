@@ -33,6 +33,10 @@ function Navbar() {
           Favorites
         </Link>
 
+        <Link to="/profile/edit" className="app-navbar-link">
+          Profile
+        </Link>
+
         <Link to="/map" className="app-navbar-link">
           Map
         </Link>
