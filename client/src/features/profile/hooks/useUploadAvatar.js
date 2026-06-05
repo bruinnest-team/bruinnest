@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { uploadMyAvatar } from "../../../lib/api/profile";
+import { afterProfileSave } from "../queries/profileInvalidation";
 import { profileKeys } from "../queries/queryKeys";
 
 export function useUploadAvatar() {
@@ -11,8 +12,13 @@ export function useUploadAvatar() {
       formData.append("avatar", file);
       return uploadMyAvatar(formData);
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: profileKeys.myProfile });
+    onSuccess: (res) => {
+      queryClient.setQueryData(profileKeys.myProfile, (profile) =>
+        profile
+          ? { ...profile, avatarUrl: res.data.avatarUrl }
+          : profile
+      );
+      afterProfileSave();
     },
   });
 }
