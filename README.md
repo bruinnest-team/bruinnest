@@ -121,6 +121,36 @@ Frontend notes:
 - The frontend should send authenticated requests with credentials enabled.
 - Phase 2 screens such as questionnaire, favorites, housing, and map discovery depend on the newer API and database contracts described in `docs/`.
 
+## E2E Testing
+
+End-to-end tests use [Playwright](https://playwright.dev/) and live in `e2e/`. From the `bruinnest/` root, a single command starts both servers, runs all 10 tests, and shuts everything down:
+
+```bash
+npm install
+npm run test:e2e
+```
+
+On Linux/WSL, install Chromium system dependencies once before running:
+
+```bash
+npx playwright install-deps chromium
+```
+
+### Test coverage
+
+| # | Feature | What it verifies |
+|---|---------|-----------------|
+| 1 | Auth | Register triggers verification email step |
+| 2 | Auth | Login with valid credentials redirects to browse |
+| 3 | Auth | Login with wrong password shows error |
+| 4 | Routing | Unauthenticated access to `/browse` redirects to login |
+| 5 | Browse | Profile listings are visible after login |
+| 6 | Browse | Search by name filters results correctly |
+| 7 | Favorites | Favorites page loads for authenticated user |
+| 8 | Questionnaire | Questionnaire page loads with dropdown questions |
+| 9 | Housing | Housing page loads with search form |
+| 10 | Messages | Messages page loads conversation layout |
+
 ## Product Scope Notes
 
 The current planned implementation keeps two user stories deferred for a later phase:

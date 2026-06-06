@@ -27,3 +27,6 @@ server/uploads/avatars/*
 
 .DS_Store
 Thumbs.db
+
+test-results/
+playwright-report/
