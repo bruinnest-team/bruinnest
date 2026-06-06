@@ -1,12 +1,14 @@
 const userRepository = require('../repositories/userRepository');
 const emailVerificationRepository = require('../repositories/emailVerificationRepository');
 const profileRepository = require('../repositories/profileRepository');
+const { sendVerificationCodeEmail } = require('./emailService');
 const { hashPassword, verifyPassword } = require('../utils/password');
 const { nowISO, addSeconds, isExpired } = require('../utils/time');
-const { validatePassword } = require('../validations/authValidation');
+const { validateEmail, validatePassword } = require('../validations/authValidation');
 const AuthError = require('../errors/AuthError');
 const ValidationError = require('../errors/ValidationError');
 const ConflictError = require('../errors/ConflictError');
+const MailDeliveryError = require('../errors/MailDeliveryError');
 const bcrypt = require('bcrypt');
 
 async function sendVerificationCode({ email, password }) {
@@ -14,14 +16,15 @@ async function sendVerificationCode({ email, password }) {
     throw new ValidationError('Email and password are required');
   }
 
+  const normalizedEmail = validateEmail(email);
   validatePassword(password);
 
-  const existingUser = userRepository.findByEmail(email);
+  const existingUser = userRepository.findByEmail(normalizedEmail);
   if (existingUser && existingUser.isVerified) {
     throw new ConflictError('Email already exists');
   }
 
-  const latest = emailVerificationRepository.findLatestActiveByEmail(email);
+  const latest = emailVerificationRepository.findLatestActiveByEmail(normalizedEmail);
   if (latest) {
     const cooldownEnd = addSeconds(latest.sentAt, 60);
     if (!isExpired(cooldownEnd)) {
@@ -34,28 +37,38 @@ async function sendVerificationCode({ email, password }) {
   const now = nowISO();
   const expiresAt = addSeconds(now, 600);
 
-  emailVerificationRepository.createVerification({
-    email,
+  const verification = emailVerificationRepository.createVerification({
+    email: normalizedEmail,
     codeHash,
     expiresAt,
     sentAt: now,
   });
 
-  // Later we should send email here. For MVP, log to console.
-  console.log(`Verification code for ${email}: ${code}`);
+  try {
+    await sendVerificationCodeEmail({ to: normalizedEmail, code });
+  } catch {
+    emailVerificationRepository.deleteById(verification.id);
+    throw new MailDeliveryError();
+  }
 
   return { message: 'Verification code sent' };
 }
 
 async function verifyRegistration({ email, password, code, session }) {
 
+  const normalizedEmail = validateEmail(email);
   validatePassword(password);
 
   if (!email || !password || !code) {
     throw new ValidationError('Email, password, and code are required');
   }
 
-  const verification = emailVerificationRepository.findLatestActiveByEmail(email);
+  const existingUser = userRepository.findByEmail(normalizedEmail);
+  if (existingUser) {
+    throw new ConflictError('Email already exists');
+  }
+
+  const verification = emailVerificationRepository.findLatestActiveByEmail(normalizedEmail);
   if (!verification) {
     throw new ValidationError('No active verification code found');
   }
@@ -70,7 +83,7 @@ async function verifyRegistration({ email, password, code, session }) {
   }
 
   const passwordHash = await hashPassword(password);
-  const user = userRepository.createUser({ email, passwordHash, isVerified: true });
+  const user = userRepository.createUser({ email: normalizedEmail, passwordHash, isVerified: true });
 
   emailVerificationRepository.markConsumed(verification.id, nowISO());
 
@@ -84,7 +97,8 @@ async function login({ email, password, session }) {
     throw new ValidationError('Email and password are required');
   }
 
-  const user = userRepository.findByEmail(email);
+  const normalizedEmail = validateEmail(email);
+  const user = userRepository.findByEmail(normalizedEmail);
   if (!user) {
     throw new AuthError('Invalid email or password');
   }

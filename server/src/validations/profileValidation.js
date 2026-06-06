@@ -194,6 +194,28 @@ function normalizeProfileQuery(query = {}) {
     normalizedQuery.moveInDate = parseMoveInDate(query.moveInDate);
   }
 
+  if (hasQueryValue(query.sortBy) && !isEmptyOptionalQueryValue(query.sortBy)) {
+    const sortBy = query.sortBy.trim();
+    if (sortBy !== "latest" && sortBy !== "compatibility") {
+      throw new ValidationError("sortBy must be 'latest' or 'compatibility'.");
+    }
+    normalizedQuery.sortBy = sortBy;
+  }
+
+  if (
+    hasQueryValue(query.hasLinkedHousing) &&
+    !isEmptyOptionalQueryValue(query.hasLinkedHousing)
+  ) {
+    const value = query.hasLinkedHousing;
+    if (value === true || value === "true" || value === 1 || value === "1") {
+      normalizedQuery.hasLinkedHousing = true;
+    } else if (value === false || value === "false" || value === 0 || value === "0") {
+      normalizedQuery.hasLinkedHousing = false;
+    } else {
+      throw new ValidationError("hasLinkedHousing must be true or false.");
+    }
+  }
+
   return normalizedQuery;
 }
 

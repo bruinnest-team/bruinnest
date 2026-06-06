@@ -62,6 +62,7 @@ const listConversationsForUserStatement = db.prepare(`
     c.updated_at,
     other_cp.user_id AS other_user_id,
     other_profile.display_name AS other_user_display_name,
+    other_profile.avatar_url AS other_user_avatar_url,
     latest_message.body AS last_message_preview,
     latest_message.created_at AS last_message_at,
     (
@@ -100,6 +101,16 @@ const findParticipantStatement = db.prepare(`
   FROM conversation_participants
   WHERE conversation_id = ?
     AND user_id = ?
+`);
+
+const listParticipantsStatement = db.prepare(`
+  SELECT
+    conversation_id,
+    user_id,
+    last_read_message_id,
+    joined_at
+  FROM conversation_participants
+  WHERE conversation_id = ?
 `);
 
 const updateLastReadMessageStatement = db.prepare(`
@@ -146,6 +157,7 @@ function mapConversationListRow(row) {
     otherUser: {
       userId: row.other_user_id,
       displayName: row.other_user_display_name,
+      avatarUrl: row.other_user_avatar_url || null,
     },
     lastMessagePreview: row.last_message_preview,
     lastMessageAt: row.last_message_at,
@@ -193,6 +205,10 @@ function findParticipant(conversationId, userId) {
   return mapParticipantRow(findParticipantStatement.get(conversationId, userId));
 }
 
+function listParticipants(conversationId) {
+  return listParticipantsStatement.all(conversationId).map(mapParticipantRow);
+}
+
 function updateLastReadMessage({ conversationId, userId, lastReadMessageId }) {
   updateLastReadMessageStatement.run({
     conversationId,
@@ -218,6 +234,7 @@ module.exports = {
   addParticipant,
   listConversationsForUser,
   findParticipant,
+  listParticipants,
   updateLastReadMessage,
   touchConversation,
 };

@@ -49,10 +49,20 @@ function getProfileDetail(req, res, next) {
   }
 }
 
+function uploadMyAvatar(req, res, next) {
+  try {
+    const data = profileService.uploadMyAvatar(req.session.userId, req.file?.filename);
+    return success(res, data);
+  } catch (error) {
+    return next(error);
+  }
+}
+
 module.exports = {
   createProfile,
   getMyProfile,
   updateProfile,
   listProfiles,
   getProfileDetail,
+  uploadMyAvatar,
 };

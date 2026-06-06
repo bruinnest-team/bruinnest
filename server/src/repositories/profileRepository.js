@@ -12,6 +12,7 @@ const findByUserIdStatement = db.prepare(`
     budget_max,
     move_in_date,
     bio,
+    avatar_url,
     profile_completed,
     created_at,
     updated_at
@@ -57,11 +58,20 @@ const findPublicProfileByUserIdStatement = db.prepare(`
     budget_max,
     move_in_date,
     bio,
+    avatar_url,
     profile_completed,
     created_at,
-    updated_at
+    updated_at,
+    (
+      SELECT score_percent FROM compatibility_scores
+      WHERE user_id = @currentUserId AND other_user_id = profiles.user_id
+    ) AS compatibility_score,
+    EXISTS(
+      SELECT 1 FROM favorites
+      WHERE user_id = @currentUserId AND target_user_id = profiles.user_id
+    ) AS is_favorited
   FROM profiles
-  WHERE user_id = ?
+  WHERE user_id = @userId
     AND profile_completed = 1
 `);
 
@@ -79,7 +89,11 @@ function mapProfileRow(row) {
     budgetMax: row.budget_max,
     moveInDate: row.move_in_date,
     bio: row.bio,
+    avatarUrl: row.avatar_url || null,
     profileCompleted: row.profile_completed === 1,
+    compatibilityScore: row.compatibility_score ?? null,
+    hasLinkedHousing: row.has_linked_housing === 1,
+    isFavorited: row.is_favorited === 1,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -93,6 +107,7 @@ function buildSearchFilters({
   budgetMax,
   moveInDate,
   keyword,
+  hasLinkedHousing,
 }) {
   const conditions = ["profile_completed = 1"];
   const params = {};
@@ -130,6 +145,14 @@ function buildSearchFilters({
   if (keyword) {
     conditions.push("(display_name LIKE @keyword OR bio LIKE @keyword)");
     params.keyword = `%${keyword}%`;
+  }
+
+  if (hasLinkedHousing !== undefined && hasLinkedHousing !== null) {
+    if (hasLinkedHousing) {
+      conditions.push("EXISTS (SELECT 1 FROM user_housing_links WHERE user_id = profiles.user_id)");
+    } else {
+      conditions.push("NOT EXISTS (SELECT 1 FROM user_housing_links WHERE user_id = profiles.user_id)");
+    }
   }
 
   return {
@@ -221,6 +244,8 @@ function searchProfiles({
   budgetMax,
   moveInDate,
   keyword,
+  sortBy = "latest",
+  hasLinkedHousing,
 }) {
   const safePage = Math.max(1, Number(page) || 1);
   const safePageSize = Math.max(1, Number(pageSize) || 10);
@@ -234,7 +259,13 @@ function searchProfiles({
     budgetMax,
     moveInDate,
     keyword,
+    hasLinkedHousing,
   });
+
+  const orderByClause =
+    sortBy === "compatibility"
+      ? "IFNULL(compatibility_score, -1) DESC, updated_at DESC, user_id ASC"
+      : "updated_at DESC, user_id ASC";
 
   const itemsStatement = db.prepare(`
     SELECT
@@ -246,12 +277,25 @@ function searchProfiles({
       budget_max,
       move_in_date,
       bio,
+      avatar_url,
       profile_completed,
       created_at,
-      updated_at
+      updated_at,
+      (
+        SELECT score_percent FROM compatibility_scores
+        WHERE user_id = @currentUserId AND other_user_id = profiles.user_id
+      ) AS compatibility_score,
+      EXISTS(
+        SELECT 1 FROM user_housing_links
+        WHERE user_id = profiles.user_id
+      ) AS has_linked_housing,
+      EXISTS(
+        SELECT 1 FROM favorites
+        WHERE user_id = @currentUserId AND target_user_id = profiles.user_id
+      ) AS is_favorited
     FROM profiles
     ${whereClause}
-    ORDER BY updated_at DESC, user_id ASC
+    ORDER BY ${orderByClause}
     LIMIT @limit OFFSET @offset
   `);
 
@@ -278,8 +322,19 @@ function searchProfiles({
   };
 }
 
-function findPublicProfileByUserId(userId) {
-  return mapProfileRow(findPublicProfileByUserIdStatement.get(userId));
+function findPublicProfileByUserId(userId, currentUserId = null) {
+  return mapProfileRow(findPublicProfileByUserIdStatement.get({ userId, currentUserId }));
+}
+
+const updateAvatarStatement = db.prepare(`
+  UPDATE profiles
+  SET avatar_url = @avatarUrl, updated_at = ${timestampExpression}
+  WHERE user_id = @userId
+`);
+
+function updateAvatar(userId, avatarUrl) {
+  updateAvatarStatement.run({ userId, avatarUrl });
+  return findByUserId(userId);
 }
 
 module.exports = {
@@ -288,4 +343,5 @@ module.exports = {
   updateProfile,
   searchProfiles,
   findPublicProfileByUserId,
+  updateAvatar,
 };

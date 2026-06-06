@@ -44,6 +44,11 @@ const deleteExpiredStatement = db.prepare(`
     AND expires_at < ?
 `);
 
+const deleteByIdStatement = db.prepare(`
+  DELETE FROM email_verifications
+  WHERE id = ?
+`);
+
 const findByIdStatement = db.prepare(`
   SELECT
     id,
@@ -101,9 +106,16 @@ function deleteExpired(now) {
   return result.changes;
 }
 
+function deleteById(verificationId) {
+  const result = deleteByIdStatement.run(verificationId);
+
+  return result.changes;
+}
+
 module.exports = {
   findLatestActiveByEmail,
   createVerification,
   markConsumed,
   deleteExpired,
+  deleteById,
 };
