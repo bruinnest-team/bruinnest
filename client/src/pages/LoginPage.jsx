@@ -20,7 +20,7 @@ function LoginPage() {
       if (res.success) {
         refreshAuth(res.data.user, res.data.profileCompleted);
         if (res.data.profileCompleted) {
-          navigate("/map");
+          navigate("/browse");
         } else {
           navigate("/profile/setup");
         }
