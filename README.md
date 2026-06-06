@@ -27,9 +27,55 @@ Core product areas include:
 - uploads: `multipart/form-data` with server-side file handling
 - map support: local housing dataset plus frontend map rendering
 
+## Architecture Diagrams
+
+### Database Entity Relationships
+
+The system has 12 tables organized around six domains: accounts, profiles, messaging, compatibility, discovery (favorites + notifications), and housing. `users` is the central identity anchor; all feature tables branch from it. Messaging flows through `conversations` → `conversation_participants` and `conversations` → `messages`.
+
+```mermaid
+flowchart TD
+    users --> profiles
+    users --> email_verifications
+    users --> questionnaires
+    users --> compatibility_scores
+    users --> favorites
+    users --> notifications
+    users --> user_housing_links
+    conversations --> conversation_participants
+    users --> conversation_participants
+    conversations --> messages
+    users --> messages
+    housing_units --> user_housing_links
+```
+
+### Backend Request Flow
+
+Every authenticated request travels through five layers with a strict one-directional dependency rule: Route → Controller → Service → Repository → Database. Routes register endpoints and attach middleware. Controllers parse request data and delegate to services. Services enforce business rules and coordinate repositories. Repositories own all SQL. This layering keeps routing, business logic, and persistence cleanly separated and makes the codebase safe for multiple teammates to work on different modules concurrently.
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Route
+    participant Controller
+    participant Service
+    participant Repository
+    participant DB
+
+    Client->>Route: HTTP request
+    Route->>Controller: matched handler
+    Controller->>Service: normalized arguments
+    Service->>Repository: read/write request
+    Repository->>DB: SQL query
+    DB-->>Repository: result rows
+    Repository-->>Service: plain data
+    Service-->>Controller: result object
+    Controller-->>Client: JSON response
+```
+
 ## Documentation
 
-Project specifications and architecture notes live in `docs/`.
+Project specifications and architecture notes live in `docs/`. These documents were initially drafted with AI assistance and then manually reviewed and adjusted to match our project's specifics.
 
 Key documents:
 
@@ -38,6 +84,7 @@ Key documents:
 - `docs/bruinnest-api-spec.md`
 - `docs/bruinnest-backend-architecture.md`
 - `docs/bruinnest-frontend-architecture.md`
+- `docs/git-convention.md`
 - `docs/README.md`
 
 ## Repository Layout
@@ -150,6 +197,23 @@ npx playwright install-deps chromium
 | 8 | Questionnaire | Questionnaire page loads with dropdown questions |
 | 9 | Housing | Housing page loads with search form |
 | 10 | Messages | Messages page loads conversation layout |
+
+## Design Decisions
+
+The table below summarizes the key architectural choices, the alternatives that were considered, and the rationale behind each decision.
+
+| Decision | Alternatives considered | Why this choice |
+|----------|------------------------|-----------------|
+| **SQLite + better-sqlite3** for persistence | PostgreSQL, MongoDB | Zero-config local setup — no separate database server to install or manage. Synchronous API (`better-sqlite3`) keeps queries simple and avoids callback complexity, which is appropriate for a course-project workload. |
+| **Session-based auth** (express-session) | JWT, OAuth 2.0 | Sessions are simpler to reason about and natively supported by Express. No token refresh or client-side storage logic needed. The frontend only needs `credentials: "include"` on fetch calls. |
+| **Polling** for messages and notifications | WebSocket (Socket.io), Server-Sent Events | Keeps transport complexity minimal for the current project scope. `TanStack Query`'s built-in `refetchInterval` makes polling trivial to configure and centralize. The decision is documented as an intentional tradeoff — WebSocket can be introduced later without changing the API contract. |
+| **Local housing dataset** (imported from JSON) | Live Zillow/RentCast API, Google Maps Places API | Avoids API key management, rate limits, and network dependency during development and demo. Data is curated and deterministic, which also makes E2E tests reliable. |
+| **Cached compatibility scores** in `compatibility_scores` table | Recalculate on every browse request | Browsing and sorting by compatibility would require N×N pairwise comparisons per request. Caching scores on questionnaire submission keeps browse queries fast and allows batch recalculation when the scoring formula changes. |
+| **Five-layer backend** (routes → controllers → services → repositories → DB) | Flat Express handlers with inline SQL, classic MVC | Enforces a strict dependency direction: repositories never call services, services never touch HTTP concepts. This makes the codebase safe for 3+ teammates to work on different modules concurrently without merge conflicts in business logic. |
+| **TanStack Query** for server state | Redux, hand-written `useEffect` + `fetch` | Built-in caching, background refetch, polling (`refetchInterval`), and mutation invalidation eliminate hundreds of lines of boilerplate. Domain-specific `queryKeys.js` and `*Invalidation.js` files make cache coordination explicit and grep-able. The migration from manual hooks to TanStack Query was done with AI assistance. |
+| **Feature-based frontend organization** | Flat `components/` folder, page-only structure | Each feature domain (messages, favorites, housing, etc.) owns its own `components/`, `hooks/`, and `queries/` sub-layers. Pages import hooks and components but never touch `queries/` directly, keeping the data-fetching layer opaque and replaceable. |
+| **Unidirectional dependency flow** (frontend and backend) | Circular imports, shared utility modules that import from features | Both architecture docs explicitly enumerate allowed and disallowed dependencies. `shared/` modules must not import from `features/`. Repositories must not import services. This prevents the codebase from developing hidden coupling over time. |
+| **`external_id`-based housing deduplication** | Auto-increment-only primary keys, upsert-by-address | Allows safe re-import of the housing catalog without creating duplicate listings. `external_id` is sourced from the original listing provider and remains stable across imports. |
 
 ## Product Scope Notes
 
